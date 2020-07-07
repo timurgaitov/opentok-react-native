@@ -68,7 +68,7 @@ export default class OTSubscriber extends Component {
           this.otrnEventHandler(error);
         } else {
           const name = stream.name || '';
-          const isProvider = name.indexOf('Screen Share') === -1 || name.indexOf('default-user.jpg') === -1;
+          const isProvider = name.indexOf('Screen Share') === -1 && name.indexOf('default-user.jpg') === -1;
 
           const streams = isProvider ? [stream.streamId, ...this.state.streams] : [...this.state.streams, stream.streamId];
 
