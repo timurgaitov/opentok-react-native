@@ -1,6 +1,7 @@
 package com.opentokreactnative;
 
 import android.view.Gravity;
+import android.view.View;
 import android.widget.FrameLayout;
 import android.opengl.GLSurfaceView;
 
@@ -18,6 +19,8 @@ public class OTPublisherLayout extends FrameLayout{
 
     public OTRN sharedState;
 
+    private String publisherId;
+
     public OTPublisherLayout(ThemedReactContext reactContext) {
 
         super(reactContext);
@@ -25,6 +28,8 @@ public class OTPublisherLayout extends FrameLayout{
     }
 
     public void createPublisherView(String publisherId) {
+
+        this.publisherId = publisherId;
 
         ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
         ConcurrentHashMap<String, String> androidOnTopMap = sharedState.getAndroidOnTopMap();
@@ -58,4 +63,38 @@ public class OTPublisherLayout extends FrameLayout{
 
     }
 
+    public void updateFitLayout(String fitToView) {
+
+        if (publisherId != null && publisherId.length() > 0) {
+            Publisher mPublisher = sharedState.getPublisher(publisherId);
+            if (mPublisher != null) {
+                String style = null;
+
+                if (fitToView == "fit") {
+                    style = BaseVideoRenderer.STYLE_VIDEO_FIT;
+                } else if (fitToView == "fill") {
+                    style = BaseVideoRenderer.STYLE_VIDEO_FILL;
+                }
+
+                if (style != null) {
+                    mPublisher.setStyle(BaseVideoRenderer.STYLE_VIDEO_SCALE, style);
+                    requestLayout();
+                }
+            }
+        }
+    }
+
+    public void setZOrderMediaOverlay(Boolean flag) {
+
+        if (publisherId != null && publisherId.length() > 0) {
+            Publisher mPublisher = sharedState.getPublisher(publisherId);
+            if (mPublisher != null) {
+                View view = mPublisher.getView();
+                if (view instanceof GLSurfaceView) {
+                    ((GLSurfaceView) view).setZOrderMediaOverlay(flag);
+                    requestLayout();
+                }
+            }
+        }
+    }
 }

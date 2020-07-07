@@ -11,6 +11,7 @@ import Foundation
 @objc(OTSubscriberView)
 class OTSubscriberView: UIView {
   @objc var streamId: NSString?
+  @objc var fitToView: NSString?
   override init(frame: CGRect) {
     super.init(frame: frame)
   }
@@ -20,8 +21,15 @@ class OTSubscriberView: UIView {
   }
   
   override func layoutSubviews() {
+    if (fitToView! as String) == "fit" {
+      OTRN.sharedState.subscribers[streamId! as String]?.viewScaleBehavior = .fit
+    } else {
+      OTRN.sharedState.subscribers[streamId! as String]?.viewScaleBehavior = .fill
+    }
     if let subscriberView = OTRN.sharedState.subscribers[streamId! as String]?.view {
       subscriberView.frame = self.bounds
+      subscriberView.layer.cornerRadius = 8
+      subscriberView.layer.masksToBounds = true
       addSubview(subscriberView)
     }
   }

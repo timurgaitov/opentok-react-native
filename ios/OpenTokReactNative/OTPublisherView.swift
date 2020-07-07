@@ -21,6 +21,8 @@ class OTPublisherView : UIView {
   override func layoutSubviews() {
     if let publisherView = OTRN.sharedState.publishers[publisherId! as String]?.view {
       publisherView.frame = self.bounds
+      publisherView.layer.cornerRadius = 8;
+      publisherView.layer.masksToBounds = true;
       addSubview(publisherView)
     }
   }

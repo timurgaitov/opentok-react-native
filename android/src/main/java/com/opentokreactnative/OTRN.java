@@ -60,6 +60,11 @@ public class OTRN {
         return this.subscribers;
     }
 
+    public ConcurrentHashMap<String, Publisher> getSubscriber(String streamId) {
+
+        return this.subscribers.get(streamId);
+    }
+
     public ConcurrentHashMap<String, FrameLayout> getSubscriberViewContainers() {
 
         return this.subscriberViewContainers;
@@ -68,6 +73,11 @@ public class OTRN {
     public ConcurrentHashMap<String, Publisher> getPublishers() {
 
         return this.publishers;
+    }
+
+    public ConcurrentHashMap<String, Publisher> getPublisher(String publisherId) {
+
+        return this.publishers.get(publisherId);
     }
 
     public ConcurrentHashMap<String, FrameLayout> getPublisherViewContainers() {

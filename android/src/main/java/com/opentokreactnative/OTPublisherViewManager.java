@@ -31,4 +31,16 @@ public class OTPublisherViewManager extends ViewGroupManager<OTPublisherLayout> 
         view.createPublisherView(publisherId);
     }
 
+    @ReactProp(name = "fitToView")
+    public void setFitToView(OTPublisherLayout view, String fitToView) {
+
+        view.updateFitLayout(fitToView);
+    }
+
+    @ReactProp(name = "swap")
+    public void setSwap(OTPublisherLayout view, Boolean swap) {
+
+        view.setZOrderMediaOverlay(swap);
+    }
+
 }

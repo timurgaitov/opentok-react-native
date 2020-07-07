@@ -30,4 +30,16 @@ public class OTSubscriberViewManager extends ViewGroupManager<OTSubscriberLayout
         view.createSubscriberView(streamId);
     }
 
+    @ReactProp(name = "fitToView")
+    public void setFitToView(OTSubscriberLayout view, String fitToView) {
+
+        view.updateFitLayout(fitToView);
+    }
+
+    @ReactProp(name = "swap")
+    public void setSwap(OTSubscriberLayout view, Boolean swap) {
+
+        view.setZOrderMediaOverlay(swap);
+    }
+
 }
