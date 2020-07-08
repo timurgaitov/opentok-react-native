@@ -60,7 +60,7 @@ public class OTRN {
         return this.subscribers;
     }
 
-    public ConcurrentHashMap<String, Publisher> getSubscriber(String streamId) {
+    public ConcurrentHashMap<String, Subscriber> getSubscriber(String streamId) {
 
         return this.subscribers.get(streamId);
     }
