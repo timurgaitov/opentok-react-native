@@ -35,6 +35,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     public synchronized void init() {
         mUSBMonitor.register();
+        handleAttach();
     }
 
     @Override
