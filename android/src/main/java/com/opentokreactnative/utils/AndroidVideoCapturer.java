@@ -302,6 +302,10 @@ public class AndroidVideoCapturer implements Camera.PreviewCallback {
         } catch (RuntimeException exp) {
         }
 
+        if (sizes == null) {
+            return;
+        }
+
         int maxw = 0;
         int maxh = 0;
         for (int i = 0; i < sizes.size(); ++i) {
