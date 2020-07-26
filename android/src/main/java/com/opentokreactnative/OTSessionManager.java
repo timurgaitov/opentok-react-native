@@ -21,6 +21,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableArray;
 
+import com.opentok.android.BaseVideoCapturer;
 import com.opentok.android.Session;
 import com.opentok.android.Connection;
 import com.opentok.android.Publisher;
@@ -29,6 +30,7 @@ import com.opentok.android.Stream;
 import com.opentok.android.OpentokError;
 import com.opentok.android.Subscriber;
 import com.opentok.android.SubscriberKit;
+import com.opentokreactnative.utils.CameraType;
 import com.opentokreactnative.utils.CustomVideoCapturer;
 import com.opentokreactnative.utils.EventUtils;
 import com.opentokreactnative.utils.Utils;
@@ -171,9 +173,8 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .frameRate(Publisher.CameraCaptureFrameRate.valueOf(frameRate))
                     .capturer(capturer)
                     .build();
-            if (cameraPosition.equals("back")) {
-                mPublisher.cycleCamera();
-            }
+
+            this.cycleToCameraType(mPublisher, cameraPosition);
         }
         mPublisher.setPublisherListener(this);
         mPublisher.setAudioLevelListener(this);
@@ -183,6 +184,31 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
         mPublishers.put(publisherId, mPublisher);
         callback.invoke();
+    }
+
+    private void cycleToCameraType(Publisher mPublisher, String cameraPosition) {
+        BaseVideoCapturer.CaptureSwitch captureSwitch = (BaseVideoCapturer.CaptureSwitch)mPublisher.getCapturer();
+
+        final int cameraIndex;
+
+        switch (cameraPosition) {
+            case "external":
+                cameraIndex = CameraType.External.ordinal();
+                break;
+            case "front":
+                cameraIndex = CameraType.AndroidFront.ordinal();
+                break;
+            case "back":
+            default:
+                cameraIndex = CameraType.AndroidBack.ordinal();
+                break;
+        }
+
+        final int numberOfCamerasToCheck = 2;
+
+        for (int i = 0; i < numberOfCamerasToCheck && captureSwitch.getCameraIndex() != cameraIndex; i++) {
+            mPublisher.cycleCamera();
+        }
     }
 
     @ReactMethod
@@ -315,10 +341,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     @ReactMethod
     public void changeCameraPosition(String publisherId, String cameraPosition) {
 
-        ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
-        Publisher mPublisher = mPublishers.get(publisherId);
+        Publisher mPublisher = sharedState.getPublisher(publisherId);
         if (mPublisher != null) {
-            mPublisher.cycleCamera();
+            this.cycleToCameraType(mPublisher, cameraPosition);
         }
     }
 

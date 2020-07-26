@@ -9,12 +9,6 @@ import com.serenegiant.usb.DeviceFilter;
 import com.serenegiant.usb.USBMonitor;
 import java.util.List;
 
-enum CameraType {
-    AndroidBack,
-    AndroidFront,
-    External
-}
-
 public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoCapturer.CaptureSwitch {
     private boolean isCaptureStarted = false;
     private boolean isCaptureRunning = false;
@@ -114,9 +108,17 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         return CameraType.values()[(cameraType.ordinal() + 1) % 3];
     }
 
-    // deprecated
     public int getCameraIndex() {
-        return 0;
+        switch (this.cameraType) {
+            case External:
+                return CameraType.External.ordinal();
+            case AndroidBack:
+                return CameraType.AndroidBack.ordinal();
+            case AndroidFront:
+                return CameraType.AndroidFront.ordinal();
+            default:
+                return -1;
+        }
     }
 
     // deprecated
