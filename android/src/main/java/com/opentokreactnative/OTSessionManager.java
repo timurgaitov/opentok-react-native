@@ -187,6 +187,10 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     }
 
     private void cycleToCameraType(Publisher mPublisher, String cameraPosition) {
+        if (cameraPosition == null) {
+            return;
+        }
+
         BaseVideoCapturer.CaptureSwitch captureSwitch = (BaseVideoCapturer.CaptureSwitch)mPublisher.getCapturer();
 
         final int cameraIndex;
