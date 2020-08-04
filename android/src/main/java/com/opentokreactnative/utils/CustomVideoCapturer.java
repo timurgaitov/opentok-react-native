@@ -92,37 +92,46 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     @Override
     public synchronized void cycleCamera() {
-        cameraType = getNextCameraType();
+        throw new UnsupportedOperationException();
+    }
+
+    public int getCameraIndex() {
+        switch (this.cameraType) {
+            case External:
+                return CameraIndex.External;
+            case AndroidBack:
+                return CameraIndex.Back;
+            case AndroidFront:
+                return CameraIndex.Front;
+            default:
+                return -1;
+        }
+    }
+
+    public synchronized void swapCamera(int index) {
+        switch (index) {
+            case CameraIndex.External:
+                cameraType = CameraType.External;
+                break;
+            case CameraIndex.Back:
+                cameraType = CameraType.AndroidBack;
+                break;
+            case CameraIndex.Front:
+                cameraType = CameraType.AndroidFront;
+                break;
+            default:
+                return;
+        }
+
         if (cameraType == CameraType.External) {
             if (!handleAttach()) {
-                cameraType = getNextCameraType();
+                cameraType = CameraType.AndroidBack;
                 androidVideoCapturer.swapCamera(cameraType, this.isCaptureStarted);
             }
         } else {
             uvcVideoCapturer.stopCapture();
             androidVideoCapturer.swapCamera(cameraType, this.isCaptureStarted);
         }
-    }
-
-    private CameraType getNextCameraType() {
-        return CameraType.values()[(cameraType.ordinal() + 1) % 3];
-    }
-
-    public int getCameraIndex() {
-        switch (this.cameraType) {
-            case External:
-                return CameraType.External.ordinal();
-            case AndroidBack:
-                return CameraType.AndroidBack.ordinal();
-            case AndroidFront:
-                return CameraType.AndroidFront.ordinal();
-            default:
-                return -1;
-        }
-    }
-
-    // deprecated
-    public synchronized void swapCamera(int index) {
     }
 
     public boolean getIsCaptureRunning() {

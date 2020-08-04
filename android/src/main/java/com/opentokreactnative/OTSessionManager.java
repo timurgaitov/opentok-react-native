@@ -30,7 +30,7 @@ import com.opentok.android.Stream;
 import com.opentok.android.OpentokError;
 import com.opentok.android.Subscriber;
 import com.opentok.android.SubscriberKit;
-import com.opentokreactnative.utils.CameraType;
+import com.opentokreactnative.utils.CameraIndex;
 import com.opentokreactnative.utils.CustomVideoCapturer;
 import com.opentokreactnative.utils.EventUtils;
 import com.opentokreactnative.utils.Utils;
@@ -193,25 +193,17 @@ public class OTSessionManager extends ReactContextBaseJavaModule
 
         BaseVideoCapturer.CaptureSwitch captureSwitch = (BaseVideoCapturer.CaptureSwitch)mPublisher.getCapturer();
 
-        final int cameraIndex;
-
         switch (cameraPosition) {
             case "external":
-                cameraIndex = CameraType.External.ordinal();
+                captureSwitch.swapCamera(CameraIndex.External);
                 break;
             case "front":
-                cameraIndex = CameraType.AndroidFront.ordinal();
+                captureSwitch.swapCamera(CameraIndex.Front);
                 break;
             case "back":
             default:
-                cameraIndex = CameraType.AndroidBack.ordinal();
+                captureSwitch.swapCamera(CameraIndex.Back);
                 break;
-        }
-
-        final int numberOfCamerasToCheck = 2;
-
-        for (int i = 0; i < numberOfCamerasToCheck && captureSwitch.getCameraIndex() != cameraIndex; i++) {
-            mPublisher.cycleCamera();
         }
     }
 
