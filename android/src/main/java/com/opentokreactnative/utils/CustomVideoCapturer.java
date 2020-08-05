@@ -142,7 +142,11 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         synchronized (mSync) {
             List<UsbDevice> usbDeviceList = mUSBMonitor.getDeviceList();
             if (usbDeviceList.size() > 0) {
-                mUSBMonitor.requestPermission(usbDeviceList.get(0));
+                try {
+                    mUSBMonitor.requestPermission(usbDeviceList.get(0));
+                } catch (SecurityException ex) {
+                    return false;
+                }
                 return true;
             }
         }
