@@ -397,7 +397,11 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     mSession.unpublish(mPublisher);
                 }
                 if (mPublisher != null) {
-                    mPublisher.getCapturer().stopCapture();
+                    try {
+                        mPublisher.getCapturer().stopCapture();
+                    } catch (Exception ex) {
+                        // ignore
+                    }
                 }
                 mPublishers.remove(publisherId);
             }
