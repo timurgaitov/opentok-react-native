@@ -1,6 +1,5 @@
 package com.opentokreactnative.utils;
 
-import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.hardware.usb.UsbDevice;
 
@@ -18,14 +17,11 @@ public class UvcVideoCapturer {
     private final Object mSync = new Object();
     private UVCCamera mUVCCamera;
     private SurfaceTexture mSurfaceTexture;
-    private BaseUtility baseUtility;
 
-    private CustomVideoCapturer mCustomVideoCapturer;
+    private final CustomVideoCapturer mCustomVideoCapturer;
 
-    public UvcVideoCapturer(Context context, CustomVideoCapturer customVideoCapturer) {
+    public UvcVideoCapturer(CustomVideoCapturer customVideoCapturer) {
         mCustomVideoCapturer = customVideoCapturer;
-
-        baseUtility = new BaseUtility();
     }
 
     public int startCapture() {
@@ -65,11 +61,28 @@ public class UvcVideoCapturer {
     }
 
 
-    public void onConnectCamera(final UsbDevice device, final USBMonitor.UsbControlBlock ctrlBlock, final boolean createNew) {
-        openCamera(device, ctrlBlock);
+    public void openCamera(final USBMonitor.UsbControlBlock ctrlBlock, final boolean createNew) {
+        releaseCamera();
+
+        synchronized (mSync) {
+            mUVCCamera = new UVCCamera();
+            mUVCCamera.open(ctrlBlock);
+
+            List<Size> supportedSizeList = mUVCCamera.getSupportedSizeList();
+            Size previewSize = getPreviewSize(supportedSizeList);
+            previewWidth = previewSize.width;
+            previewHeight = previewSize.height;
+            mUVCCamera.setPreviewSize(previewWidth, previewHeight, UVCCamera.FRAME_FORMAT_MJPEG);
+
+            mSurfaceTexture = new SurfaceTexture(42);
+
+            mUVCCamera.setPreviewTexture(mSurfaceTexture);
+            mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_YUV420SP);
+            mUVCCamera.startPreview();
+        }
     }
 
-    public void onDisconnectCamera() {
+    public void closeCamera() {
         releaseCamera();
     }
 
@@ -77,51 +90,24 @@ public class UvcVideoCapturer {
         synchronized (mSync) {
             if (mUVCCamera != null) {
                 try {
-                    if (mUVCCamera != null) mUVCCamera.close();
-                    if (mUVCCamera != null) mUVCCamera.destroy();
-                } catch (final Exception e) {
-                } finally {
-                    mSurfaceTexture.release();
+                    mUVCCamera.close();
+                } catch (Exception e) {
+                    // ignore
+                }
+                try {
+                    mUVCCamera.destroy();
+                } catch (Exception e) {
+                    // ignore
                 }
                 mUVCCamera = null;
+                try {
+                    mSurfaceTexture.release();
+                } catch (Exception e) {
+                    // ignore
+                }
+                mSurfaceTexture = null;
             }
         }
-    }
-
-    private void openCamera(final UsbDevice device, final USBMonitor.UsbControlBlock ctrlBlock) {
-        releaseCamera();
-        baseUtility.queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                final UVCCamera camera = new UVCCamera();
-                camera.open(ctrlBlock);
-                try {
-                    List<Size> supportedSizeList = camera.getSupportedSizeList();
-                    Size previewSize = getPreviewSize(supportedSizeList);
-                    previewWidth = previewSize.width;
-                    previewHeight = previewSize.height;
-                    camera.setPreviewSize(previewWidth, previewHeight, UVCCamera.FRAME_FORMAT_MJPEG);
-                } catch (final IllegalArgumentException e) {
-                    try {
-                        camera.setPreviewSize(640, 480, UVCCamera.DEFAULT_PREVIEW_MODE);
-                    } catch (final IllegalArgumentException e1) {
-                        camera.destroy();
-                        return;
-                    }
-                }
-                if (mSurfaceTexture != null) {
-                    mSurfaceTexture.release();
-                }
-                mSurfaceTexture = new SurfaceTexture(42);
-
-                camera.setPreviewTexture(mSurfaceTexture);
-                camera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_YUV420SP);
-                camera.startPreview();
-                synchronized (mSync) {
-                    mUVCCamera = camera;
-                }
-            }
-        }, 0);
     }
 
     private final IFrameCallback mIFrameCallback = new IFrameCallback() {
