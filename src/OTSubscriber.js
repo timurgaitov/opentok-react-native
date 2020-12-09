@@ -60,6 +60,11 @@ export default class OTSubscriber extends Component {
     const { sessionId, sessionInfo } = this.context;
     const subscriberProperties = isNull(streamProperties[stream.streamId]) ?
                                   sanitizeProperties(properties) : sanitizeProperties(streamProperties[stream.streamId]);
+
+    const sp = streamProperties[stream.streamId];
+    const si = sp && sp.streamInformation;
+    const isProvider = si && si.isProvider;
+
     // Subscribe to streams. If subscribeToSelf is true, subscribe also to his own stream
     const sessionInfoConnectionId = sessionInfo && sessionInfo.connection ? sessionInfo.connection.connectionId : null;
     if (subscribeToSelf || (sessionInfoConnectionId !== stream.connectionId)){
@@ -67,9 +72,6 @@ export default class OTSubscriber extends Component {
         if (error) {
           this.otrnEventHandler(error);
         } else {
-          const name = stream.name || '';
-          const isProvider = name.indexOf('Screen Share') === -1 && name.indexOf('default-user.jpg') === -1;
-
           const streams = isProvider ? [stream.streamId, ...this.state.streams] : [...this.state.streams, stream.streamId];
 
           this.setState({
