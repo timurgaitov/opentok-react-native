@@ -6,8 +6,9 @@ package com.opentokreactnative;
 
 import android.util.Log;
 import android.widget.FrameLayout;
-import android.support.annotation.Nullable;
 import android.view.View;
+
+import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
@@ -29,6 +30,8 @@ import com.opentok.android.Stream;
 import com.opentok.android.OpentokError;
 import com.opentok.android.Subscriber;
 import com.opentok.android.SubscriberKit;
+import com.opentok.android.VideoUtils;
+import com.opentok.android.AudioDeviceManager;
 import com.opentokreactnative.utils.EventUtils;
 import com.opentokreactnative.utils.Utils;
 
@@ -75,6 +78,11 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         final boolean isCamera2Capable = sessionOptions.getBoolean("isCamera2Capable");
         final boolean connectionEventsSuppressed = sessionOptions.getBoolean("connectionEventsSuppressed");
         final boolean ipWhitelist = sessionOptions.getBoolean("ipWhitelist");
+        final boolean enableStereoOutput = sessionOptions.getBoolean("enableStereoOutput");
+        if (enableStereoOutput) {
+            OTCustomAudioDriver otCustomAudioDriver = new OTCustomAudioDriver(this.getReactApplicationContext());
+            AudioDeviceManager.setAudioDevice(otCustomAudioDriver);
+        }
         // Note: IceConfig is an additional property not supported at the moment. 
         // final ReadableMap iceConfig = sessionOptions.getMap("iceConfig");
         // final List<Session.Builder.IceServer> iceConfigServerList = (List<Session.Builder.IceServer>) iceConfig.getArray("customServers");
@@ -218,6 +226,18 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         mSubscriber.setStreamListener(this);
         mSubscriber.setSubscribeToAudio(properties.getBoolean("subscribeToAudio"));
         mSubscriber.setSubscribeToVideo(properties.getBoolean("subscribeToVideo"));
+        if (properties.hasKey("preferredFrameRate")) {
+            mSubscriber.setPreferredFrameRate((float) properties.getDouble("preferredFrameRate"));
+        }
+        if (properties.hasKey("preferredResolution")
+                && properties.getMap("preferredResolution").hasKey("width")
+                && properties.getMap("preferredResolution").hasKey("height")) {
+            ReadableMap preferredResolution = properties.getMap("preferredResolution");
+            VideoUtils.Size resolution = new VideoUtils.Size(
+                    preferredResolution.getInt("width"),
+                    preferredResolution.getInt("height"));
+            mSubscriber.setPreferredResolution(resolution);
+        }
         mSubscribers.put(streamId, mSubscriber);
         if (mSession != null) {
             mSession.subscribe(mSubscriber);
@@ -302,6 +322,34 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         Subscriber mSubscriber = mSubscribers.get(streamId);
         if (mSubscriber != null) {
             mSubscriber.setSubscribeToVideo(subscribeToVideo);
+        }
+    }
+
+    @ReactMethod
+    public void setPreferredResolution(String streamId, ReadableMap resolution) {
+
+        ConcurrentHashMap<String, Subscriber> mSubscribers = sharedState.getSubscribers();
+        Subscriber mSubscriber = mSubscribers.get(streamId);
+        if (mSubscriber != null ) {
+            if (resolution.hasKey("width")
+                    && resolution.hasKey("height")) {
+                VideoUtils.Size preferredResolution = new VideoUtils.Size(
+                        resolution.getInt("width"),
+                        resolution.getInt("height"));
+                mSubscriber.setPreferredResolution(preferredResolution);
+            } else {
+                mSubscriber.setPreferredResolution(SubscriberKit.NO_PREFERRED_RESOLUTION);
+            }
+        }
+    }
+
+    @ReactMethod
+    public void setPreferredFrameRate(String streamId, Float frameRate) {
+
+        ConcurrentHashMap<String, Subscriber> mSubscribers = sharedState.getSubscribers();
+        Subscriber mSubscriber = mSubscribers.get(streamId);
+        if (mSubscriber != null) {
+            mSubscriber.setPreferredFrameRate(frameRate);
         }
     }
 

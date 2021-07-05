@@ -61,7 +61,7 @@ declare module "opentok-react-native" {
     stream: Stream;
   }
 
-  interface OTSessionViewProps extends ViewProps {
+  interface OTSessionProps extends ViewProps {
     /**
      * TokBox API Key
      */
@@ -123,6 +123,11 @@ declare module "opentok-react-native" {
      * Android only - default is false
      */
     ipWhitelist?: boolean;
+    
+    /**
+     * Enable Stereo output
+     */
+    enableStereoOutput: boolean;
   }
 
   interface OTSessionEventHandlers {
@@ -200,9 +205,9 @@ declare module "opentok-react-native" {
   /**
    * https://github.com/opentok/opentok-react-native/blob/master/docs/OTSession.md
    */
-  export class OTSession extends React.Component<OTSessionViewProps> {}
+  export class OTSession extends React.Component<OTSessionProps> {}
 
-  interface OTPublisherViewProps extends ViewProps {
+  interface OTPublisherProps extends ViewProps {
     /**
      * Properties passed into the native publisher instance
      */
@@ -281,7 +286,7 @@ declare module "opentok-react-native" {
     /**
      * The audio level, from 0 to 1.0. Adjust this value logarithmically for use in adjusting a user interface element, such as a volume meter. Use a moving average to smooth the data.
      */
-    audioLevel?: CallbackWithParam<number, any>;
+    audioLevel?: CallbackWithParam<string>;
 
     /**
      * Sent if the publisher encounters an error. After this message is sent, the publisher can be considered fully detached from a session and may be released.
@@ -307,9 +312,9 @@ declare module "opentok-react-native" {
   /**
    * https://github.com/opentok/opentok-react-native/blob/master/docs/OTPublisher.md
    */
-  export class OTPublisher extends React.Component<OTPublisherViewProps> {}
+  export class OTPublisher extends React.Component<OTPublisherProps> {}
 
-  interface OTSubscriberViewProps extends ViewProps {
+  interface OTSubscriberProps extends ViewProps {
     /**
      * OpenTok Session Id. This is auto populated by wrapping OTSubscriber with OTSession
      */
@@ -392,7 +397,7 @@ declare module "opentok-react-native" {
     /**
      * This message is sent when the subscriber stops receiving video. Check the reason parameter for the reason why the video stopped.
      */
-    videoDisabled?: CallbackWithParam<string, any>;
+    videoDisabled?: CallbackWithParam<{reason: string; stream: Stream}, any>;
 
     /**
      * This message is sent when the OpenTok Media Router determines that the stream quality has degraded and the video will be disabled if the quality degrades further. If the quality degrades further, the subscriber disables the video and the videoDisabled message is sent. If the stream quality improves, the videoDisableWarningLifted message is sent.
@@ -407,7 +412,7 @@ declare module "opentok-react-native" {
     /**
      * This message is sent when the subscriber’s video stream starts (when there previously was no video) or resumes (after video was disabled). Check the reason parameter for the reason why the video started (or resumed).
      */
-    videoEnabled?: CallbackWithParam<string, any>;
+    videoEnabled?: CallbackWithParam<{reason: string; stream: Stream}, any>;
 
     /**
      * Sent periodically to report video statistics for the subscriber.
@@ -415,8 +420,19 @@ declare module "opentok-react-native" {
     videoNetworkStats?: CallbackWithParam<any, any>;
   }
 
+  interface OTSubscriberViewProps extends ViewProps {
+    /**
+     * OpenTok Subscriber streamId.
+     */
+    streamId?: string;
+  }
+
+  /**
+   * https://github.com/opentok/opentok-react-native/blob/main/docs/OTSubscriber.md#custom-rendering-of-streams
+   */
+  export class OTSubscriberView extends React.Component<OTSubscriberViewProps> {}
   /**
    * https://github.com/opentok/opentok-react-native/blob/master/docs/OTSubscriber.md
    */
-  export class OTSubscriber extends React.Component<OTSubscriberViewProps> {}
+  export class OTSubscriber extends React.Component<OTSubscriberProps> {}
 }
