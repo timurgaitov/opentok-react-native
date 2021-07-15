@@ -39,7 +39,12 @@ class OTSessionManager: RCTEventEmitter {
     }
     
     @objc func initSession(_ apiKey: String, sessionId: String, sessionOptions: Dictionary<String, Any>) -> Void {
-        let settings = OTSessionSettings()
+        let enableStereoOutput: Bool = Utils.sanitizeBooleanProperty(sessionOptions["enableStereoOutput"] as Any);
+        if enableStereoOutput == true {
+            let customAudioDevice = OTCustomAudioDriver()
+            OTAudioDeviceManager.setAudioDevice(customAudioDevice)
+        }
+        let settings = OTSessionSettings();
         settings.connectionEventsSuppressed = Utils.sanitizeBooleanProperty(sessionOptions["connectionEventsSuppressed"] as Any);
         // Note: IceConfig is an additional property not supported at the moment. We need to add a sanitize function
         // to validate the input from settings.iceConfig.
@@ -120,7 +125,7 @@ class OTSessionManager: RCTEventEmitter {
         }
     }
     
-    @objc func subscribeToStream(_ streamId: String, properties: Dictionary<String, Any>, callback: @escaping RCTResponseSenderBlock) -> Void {
+    @objc func subscribeToStream(_ streamId: String, sessionId: String, properties: Dictionary<String, Any>, callback: @escaping RCTResponseSenderBlock) -> Void {
         var error: OTError?
         DispatchQueue.main.async {
             guard let stream = OTRN.sharedState.subscriberStreams[streamId] else {
@@ -133,7 +138,7 @@ class OTSessionManager: RCTEventEmitter {
                 callback([errorInfo]);
                 return
             }
-            guard let session = OTRN.sharedState.sessions[stream.session.sessionId] else {
+            guard let session = OTRN.sharedState.sessions[sessionId] else {
                 let errorInfo = EventUtils.createErrorMessage("Error subscribing to stream. Could not find native session instance")
                 callback([errorInfo]);
                 return
@@ -144,6 +149,8 @@ class OTSessionManager: RCTEventEmitter {
             session.subscribe(subscriber, error: &error)
             subscriber.subscribeToAudio = Utils.sanitizeBooleanProperty(properties["subscribeToAudio"] as Any);
             subscriber.subscribeToVideo = Utils.sanitizeBooleanProperty(properties["subscribeToVideo"] as Any);
+            subscriber.preferredFrameRate = Utils.sanitizePreferredFrameRate(properties["preferredFrameRate"] as Any);
+            subscriber.preferredResolution = Utils.sanitizePreferredResolution(properties["preferredResolution"] as Any);
             if let err = error {
                 self.dispatchErrorViaCallback(callback, error: err)
             } else {
@@ -201,6 +208,16 @@ class OTSessionManager: RCTEventEmitter {
     @objc func subscribeToVideo(_ streamId: String, subVideo: Bool) -> Void {
         guard let subscriber = OTRN.sharedState.subscribers[streamId] else { return }
         subscriber.subscribeToVideo = subVideo;
+    }
+    
+    @objc func setPreferredResolution(_ streamId: String, resolution: NSDictionary) -> Void {
+        guard let subscriber = OTRN.sharedState.subscribers[streamId] else { return }
+        subscriber.preferredResolution = Utils.sanitizePreferredResolution(resolution);
+    }
+    
+    @objc func setPreferredFrameRate(_ streamId: String, frameRate: Float) -> Void {
+        guard let subscriber = OTRN.sharedState.subscribers[streamId] else { return }
+        subscriber.preferredFrameRate = Utils.sanitizePreferredFrameRate(frameRate);
     }
     
     @objc func changeCameraPosition(_ publisherId: String, cameraPosition: String) -> Void {
