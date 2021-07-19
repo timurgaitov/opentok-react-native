@@ -54,7 +54,7 @@ public class UvcVideoCapturer {
         settings.fps = 30;
         settings.width = previewWidth;
         settings.height = previewHeight;
-        settings.format = BaseVideoCapturer.YUV420P;
+        settings.format = BaseVideoCapturer.NV21;
         settings.expectedDelay = 0;
 
         return settings;
@@ -114,7 +114,7 @@ public class UvcVideoCapturer {
         @Override
         public void onFrame(final ByteBuffer frame) {
             frame.clear();
-            mCustomVideoCapturer.provideBufferFrame(frame, BaseVideoCapturer.YUV420P, previewWidth, previewHeight, 0, false);
+            mCustomVideoCapturer.provideBufferFrame(frame, BaseVideoCapturer.NV21, previewWidth, previewHeight, 0, false);
         }
     };
 
