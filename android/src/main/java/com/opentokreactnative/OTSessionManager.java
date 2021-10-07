@@ -696,7 +696,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         if (mCallback != null) {
             mCallback.invoke();
         }
-        sharedState.getPublishers().remove(publisherId);
+        //sharedState.getPublishers().remove(publisherId);
         printLogs("onStreamDestroyed: Publisher Stream Destroyed. Own stream "+stream.getStreamId());
     }
 
