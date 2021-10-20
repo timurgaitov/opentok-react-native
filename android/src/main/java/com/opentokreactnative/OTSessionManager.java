@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -36,6 +37,7 @@ import com.opentokreactnative.utils.CustomVideoCapturer;
 import com.opentok.android.VideoUtils;
 import com.opentok.android.AudioDeviceManager;
 import com.opentokreactnative.utils.EventUtils;
+import com.opentokreactnative.utils.ScreenshotVideoRenderer;
 import com.opentokreactnative.utils.Utils;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -170,7 +172,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .build();
             mPublisher.setPublisherVideoType(PublisherKit.PublisherKitVideoType.PublisherKitVideoTypeScreen);
         } else {
-
+            ScreenshotVideoRenderer screenshotVideoRenderer = new ScreenshotVideoRenderer(this.getReactApplicationContext());
             CustomVideoCapturer capturer = new CustomVideoCapturer(this.getReactApplicationContext(), Publisher.CameraCaptureResolution.HIGH, Publisher.CameraCaptureFrameRate.FPS_30);
             mPublisher = new Publisher.Builder(this.getReactApplicationContext())
                     .audioTrack(audioTrack)
@@ -180,6 +182,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .resolution(Publisher.CameraCaptureResolution.valueOf(resolution))
                     .frameRate(Publisher.CameraCaptureFrameRate.valueOf(frameRate))
                     .capturer(capturer)
+                    .renderer(screenshotVideoRenderer)
                     .build();
 
             this.cycleToCameraType(mPublisher, cameraPosition);
@@ -479,6 +482,14 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                 mPublishers.remove(publisherId);
             }
         });
+    }
+
+    @ReactMethod
+    public void publisherTakeSnapshot(String publisherId, Promise promise) {
+        Publisher publisher = sharedState.getPublisher(publisherId);
+        if (publisher != null && publisher.getRenderer() instanceof ScreenshotVideoRenderer) {
+            ((ScreenshotVideoRenderer) publisher.getRenderer()).saveScreenshot(promise);
+        }
     }
 
     @ReactMethod
