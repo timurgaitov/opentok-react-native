@@ -1,33 +1,40 @@
 package com.opentokreactnative.utils;
 
+import android.app.Activity;
 import android.graphics.SurfaceTexture;
-import android.hardware.usb.UsbDevice;
 
+import com.facebook.react.bridge.ReactApplicationContext;
 import com.opentok.android.BaseVideoCapturer;
-import com.serenegiant.usb.IFrameCallback;
-import com.serenegiant.usb.Size;
 import com.serenegiant.usb.USBMonitor;
-import com.serenegiant.usb.UVCCamera;
+import com.serenegiant.usb.common.AbstractUVCCameraHandler;
+import com.serenegiant.usb.common.UVCCameraHandler;
+import com.serenegiant.usb.widget.UVCCameraTextureView;
+
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
-import java.util.List;
 
 public class UvcVideoCapturer {
-    public int previewWidth;
-    public int previewHeight;
+    public int previewWidth = 0;
+    public int previewHeight = 0;
     private final Object mSync = new Object();
-    private UVCCamera mUVCCamera;
+    private UVCCameraHandler cameraHandler;
     private SurfaceTexture mSurfaceTexture;
+    final private UVCCameraTextureView uvcCameraTextureView;
+    final private WeakReference<Activity> activityRef;
+
 
     private final CustomVideoCapturer mCustomVideoCapturer;
 
-    public UvcVideoCapturer(CustomVideoCapturer customVideoCapturer) {
+    public UvcVideoCapturer(ReactApplicationContext context, CustomVideoCapturer customVideoCapturer) {
+        activityRef = new WeakReference<>(context.getCurrentActivity());
         mCustomVideoCapturer = customVideoCapturer;
+        uvcCameraTextureView = new UVCCameraTextureView(context);
     }
 
     public int startCapture() {
         synchronized (mSync) {
-            if (mUVCCamera != null) {
-                mUVCCamera.startPreview();
+            if (cameraHandler != null) {
+                cameraHandler.startPreview(mSurfaceTexture);
             }
         }
         return 0;
@@ -35,8 +42,8 @@ public class UvcVideoCapturer {
 
     public int stopCapture() {
         synchronized (mSync) {
-            if (mUVCCamera != null) {
-                mUVCCamera.stopPreview();
+            if (cameraHandler != null) {
+                cameraHandler.stopPreview();
             }
         }
         return 0;
@@ -62,96 +69,60 @@ public class UvcVideoCapturer {
 
 
     public void openCamera(final USBMonitor.UsbControlBlock ctrlBlock, final boolean createNew) {
-        releaseCamera();
-
         synchronized (mSync) {
-            mUVCCamera = new UVCCamera();
-            mUVCCamera.open(ctrlBlock);
-
-            List<Size> supportedSizeList = mUVCCamera.getSupportedSizeList();
-            Size previewSize = getPreviewSize(supportedSizeList);
-            previewWidth = previewSize.width;
-            previewHeight = previewSize.height;
-            mUVCCamera.setPreviewSize(previewWidth, previewHeight, UVCCamera.FRAME_FORMAT_MJPEG);
-
+            if (cameraHandler == null) {
+                cameraHandler = UVCCameraHandler.createHandler(activityRef.get(), uvcCameraTextureView, 0, 0);
+                cameraHandler.setOnFrameListener(frameCallback);
+            }
+            cameraHandler.open(ctrlBlock);
             mSurfaceTexture = new SurfaceTexture(42);
-
-            mUVCCamera.setPreviewTexture(mSurfaceTexture);
-            mUVCCamera.setFrameCallback(mIFrameCallback, UVCCamera.PIXEL_FORMAT_YUV420SP);
-            mUVCCamera.startPreview();
+            cameraHandler.startPreview(mSurfaceTexture);
         }
     }
 
     public void closeCamera() {
-        releaseCamera();
-    }
-
-    private synchronized void releaseCamera() {
         synchronized (mSync) {
-            if (mUVCCamera != null) {
-                try {
-                    mUVCCamera.close();
-                } catch (Exception e) {
-                    // ignore
-                }
-                try {
-                    mUVCCamera.destroy();
-                } catch (Exception e) {
-                    // ignore
-                }
-                mUVCCamera = null;
-                try {
-                    mSurfaceTexture.release();
-                } catch (Exception e) {
-                    // ignore
-                }
-                mSurfaceTexture = null;
+            if (cameraHandler != null) {
+                cameraHandler.close();
             }
+            if (mSurfaceTexture != null) {
+                mSurfaceTexture.release();
+            }
+            mSurfaceTexture = null;
         }
+
     }
 
-    private final IFrameCallback mIFrameCallback = new IFrameCallback() {
+    public synchronized int releaseCamera() {
+        synchronized (mSync) {
+            try {
+                cameraHandler.release();
+            } catch (Exception e) {
+                // ignore
+            }
+            cameraHandler = null;
+            try {
+                mSurfaceTexture.release();
+            } catch (Exception e) {
+                // ignore
+            }
+            mSurfaceTexture = null;
+        }
+        return 0;
+    }
+
+    private final AbstractUVCCameraHandler.OnFrameListener frameCallback = new AbstractUVCCameraHandler.OnFrameListener() {
+
         @Override
-        public void onFrame(final ByteBuffer frame) {
+        public void onFrame(ByteBuffer frame) {
             frame.clear();
             mCustomVideoCapturer.provideBufferFrame(frame, BaseVideoCapturer.NV21, previewWidth, previewHeight, 0, false);
         }
+
+        @Override
+        public void onPreviewSizeChanged(int width, int height) {
+            previewWidth = width;
+            previewHeight = height;
+        }
     };
-
-    private Size getPreviewSize(List<Size> supportedSizeList) {
-        int preferredWidth = 1920;
-        int preferredHeight = 1080;
-        int maxw = 0;
-        int maxh = 0;
-        int index = 0;
-
-        for (int i = 0; i < supportedSizeList.size(); ++i) {
-            Size size = supportedSizeList.get(i);
-            if (size.width >= maxw && size.height >= maxh) {
-                if (size.width <= preferredWidth && size.height <= preferredHeight) {
-                    maxw = size.width;
-                    maxh = size.height;
-                    index = i;
-                }
-            }
-        }
-
-        if (maxw == 0 || maxh == 0) {
-            // Not found a smaller resolution close to the preferred
-            // So choose the lowest resolution possible
-            Size size = supportedSizeList.get(0);
-            int minw = size.width;
-            int minh = size.height;
-            for (int i = 1; i < supportedSizeList.size(); ++i) {
-                size = supportedSizeList.get(i);
-                if (size.width <= minw && size.height <= minh) {
-                    minw = size.width;
-                    minh = size.height;
-                    index = i;
-                }
-            }
-        }
-
-        return supportedSizeList.get(index);
-    }
 }

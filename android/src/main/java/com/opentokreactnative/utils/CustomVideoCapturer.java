@@ -1,8 +1,8 @@
 package com.opentokreactnative.utils;
 
-import android.content.Context;
 import android.hardware.usb.UsbDevice;
 
+import com.facebook.react.bridge.ReactApplicationContext;
 import com.opentok.android.BaseVideoCapturer;
 import com.opentok.android.Publisher;
 import com.serenegiant.usb.USBMonitor;
@@ -25,8 +25,8 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     private boolean permissionRequested = false;
 
-    public CustomVideoCapturer(Context context, Publisher.CameraCaptureResolution resolution, Publisher.CameraCaptureFrameRate fps) {
-        uvcVideoCapturer = new UvcVideoCapturer(this);
+    public CustomVideoCapturer(ReactApplicationContext context, Publisher.CameraCaptureResolution resolution, Publisher.CameraCaptureFrameRate fps) {
+        uvcVideoCapturer = new UvcVideoCapturer(context, this);
         androidVideoCapturer = new AndroidVideoCapturer(context, resolution, fps, this);
         usbMonitor = new USBMonitor(context, deviceConnectListener);
     }
@@ -53,8 +53,16 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     @Override
     public synchronized int stopCapture() {
         isCaptureStarted = false;
-
-        return cameraType == CameraType.External ? uvcVideoCapturer.stopCapture() : androidVideoCapturer.stopCapture();
+        if (usbMonitor != null) {
+            usbMonitor.unregister();
+            usbMonitor.destroy();
+        }
+        if (cameraType == CameraType.External) {
+            return uvcVideoCapturer.releaseCamera();
+        } else {
+            uvcVideoCapturer.releaseCamera();
+            return androidVideoCapturer.stopCapture();
+        }
     }
 
     @Override
@@ -197,7 +205,6 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
         @Override
         public void onDisconnect(final UsbDevice device, final USBMonitor.UsbControlBlock ctrlBlock) {
-            uvcVideoCapturer.closeCamera();
         }
 
         @Override
@@ -206,6 +213,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             mCtrlBlock = null;
 
             permissionRequested = false;
+            uvcVideoCapturer.closeCamera();
 
             swapCamera(fallbackCameraIndex);
         }

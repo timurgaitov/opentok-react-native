@@ -11,9 +11,11 @@ import android.os.Handler;
 import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
+
 import com.opentok.android.BaseVideoCapturer;
 import com.opentok.android.Publisher;
 import com.opentok.android.VideoUtils;
+
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -111,6 +113,12 @@ public class AndroidVideoCapturer implements Camera.PreviewCallback {
             for (int i = 0; i < numCaptureBuffers; i++) {
                 buffer = new byte[bufSize];
                 camera.addCallbackBuffer(buffer);
+            }
+
+            try {
+                camera.stopPreview();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
             try {
