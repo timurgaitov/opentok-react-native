@@ -23,12 +23,17 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     private UsbDevice mDevice;
     private USBMonitor.UsbControlBlock mCtrlBlock;
 
+    private CameraEvents cameraEventsListener;
     private boolean permissionRequested = false;
 
     public CustomVideoCapturer(ReactApplicationContext context, Publisher.CameraCaptureResolution resolution, Publisher.CameraCaptureFrameRate fps) {
         uvcVideoCapturer = new UvcVideoCapturer(context, this);
         androidVideoCapturer = new AndroidVideoCapturer(context, resolution, fps, this);
         usbMonitor = new USBMonitor(context, deviceConnectListener);
+    }
+
+    public interface CameraEvents {
+        void positionChanged(String position);
     }
 
     public synchronized void init() {
@@ -85,7 +90,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     }
 
     @Override
-    public synchronized  void onPause() {
+    public synchronized void onPause() {
         if (isCaptureStarted) {
             isCapturePaused = true;
             stopCapture();
@@ -140,14 +145,13 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             return;
         }
 
-        if (swapToCameraType == CameraType.External) {
-            if (mDevice == null || mCtrlBlock == null || !hasPermission(mDevice)) {
-                swapToCameraType = fallbackCameraType;
-            }
+        if (swapToCameraType == CameraType.External && !isUsbCameraReady()) {
+            onPositionChanged("back");
+            return;
         }
 
         if (cameraType == CameraType.AndroidFront && swapToCameraType == CameraType.AndroidBack
-            || cameraType == CameraType.AndroidBack && swapToCameraType == CameraType.AndroidFront) {
+                || cameraType == CameraType.AndroidBack && swapToCameraType == CameraType.AndroidFront) {
             androidVideoCapturer.swapCamera(swapToCameraType, this.isCaptureStarted);
         } else if (swapToCameraType == CameraType.External) {
             androidVideoCapturer.stopCapture();
@@ -161,8 +165,16 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         cameraType = swapToCameraType;
     }
 
+    public void setCameraEventsListener(CameraEvents listener) {
+        cameraEventsListener = listener;
+    }
+
     public boolean getIsCaptureRunning() {
-        return  isCaptureRunning;
+        return isCaptureRunning;
+    }
+
+    public boolean isUsbCameraReady() {
+        return mDevice != null && mCtrlBlock != null && hasPermission(mDevice);
     }
 
     private boolean hasPermission(UsbDevice device) {
@@ -189,6 +201,12 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         }
     }
 
+    private void onPositionChanged(String camera) {
+        if (cameraEventsListener != null) {
+            cameraEventsListener.positionChanged(camera);
+        }
+    }
+
     private final USBMonitor.OnDeviceConnectListener deviceConnectListener = new USBMonitor.OnDeviceConnectListener() {
         @Override
         public void onAttach(final UsbDevice device) {
@@ -200,7 +218,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             mDevice = device;
             mCtrlBlock = ctrlBlock;
 
-            swapCamera(CameraIndex.External);
+            onPositionChanged("external");
         }
 
         @Override
@@ -215,7 +233,9 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             permissionRequested = false;
             uvcVideoCapturer.closeCamera();
 
-            swapCamera(fallbackCameraIndex);
+            if (cameraType != fallbackCameraType) {
+                onPositionChanged("back");
+            }
         }
 
         @Override
