@@ -172,6 +172,8 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         } else {
 
             CustomVideoCapturer capturer = new CustomVideoCapturer(this.getReactApplicationContext(), Publisher.CameraCaptureResolution.HIGH, Publisher.CameraCaptureFrameRate.FPS_30);
+            capturer.setCameraEventsListener(position -> sendCameraPositionChanged(position));
+
             mPublisher = new Publisher.Builder(this.getReactApplicationContext())
                     .audioTrack(audioTrack)
                     .videoTrack(videoTrack)
@@ -181,8 +183,6 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .frameRate(Publisher.CameraCaptureFrameRate.valueOf(frameRate))
                     .capturer(capturer)
                     .build();
-
-            this.cycleToCameraType(mPublisher, cameraPosition);
         }
         mPublisher.setPublisherListener(this);
         mPublisher.setAudioLevelListener(this);
@@ -191,6 +191,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         mPublisher.setPublishAudio(publishAudio);
         ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
         mPublishers.put(publisherId, mPublisher);
+        if(!videoSource.equals("screen")) {
+            this.cycleToCameraType(mPublisher, cameraPosition);
+        }
         callback.invoke();
     }
 
@@ -200,7 +203,6 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         }
 
         BaseVideoCapturer.CaptureSwitch captureSwitch = (BaseVideoCapturer.CaptureSwitch)mPublisher.getCapturer();
-
         switch (cameraPosition) {
             case "external":
                 captureSwitch.swapCamera(CameraIndex.External);
@@ -212,6 +214,18 @@ public class OTSessionManager extends ReactContextBaseJavaModule
             default:
                 captureSwitch.swapCamera(CameraIndex.Back);
                 break;
+        }
+    }
+
+    private void sendCameraPositionChanged(String position) {
+        Object[] publishers = sharedState.getPublishers().values().toArray();
+        if (publishers.length > 0) {
+            Publisher publisher = (Publisher) publishers[0];
+            if (publisher != null) {
+                String id = Utils.getPublisherId(publisher);
+                String event = id + ":" + publisherPreface + "cameraPositionChanged";
+                sendEventWithString(getReactApplicationContext(), event, position);
+            }
         }
     }
 
