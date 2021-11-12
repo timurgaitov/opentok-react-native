@@ -23,6 +23,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     private UsbDevice mDevice;
     private USBMonitor.UsbControlBlock mCtrlBlock;
 
+    private CameraEvents cameraEventsListener;
     private boolean permissionRequested = false;
 
     public CustomVideoCapturer(ReactApplicationContext context, USBMonitor.UsbControlBlock controlBlock) {
@@ -32,6 +33,10 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         isCaptureStarted = true;
         //       androidVideoCapturer = new AndroidVideoCapturer(context, resolution, fps, this);
 //        usbMonitor = new USBMonitor(context, deviceConnectListener);
+    }
+
+    public interface CameraEvents {
+        void positionChanged(String position);
     }
 
     public synchronized void init() {
@@ -85,9 +90,8 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     }
 
     @Override
-    public synchronized  void onPause() {
+    public synchronized void onPause() {
         Log.i("OTRN", "CustomVideoCapturer onPause");
-
         if (isCaptureStarted) {
             isCapturePaused = true;
             stopCapture();
@@ -170,8 +174,17 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     }
 
+    public void setCameraEventsListener(CameraEvents listener) {
+        cameraEventsListener = listener;
+    }
+
     public boolean getIsCaptureRunning() {
-        return  isCaptureRunning;
+        return isCaptureRunning;
+    }
+
+    public boolean isUsbCameraReady() {
+        return true;
+        //return mDevice != null && mCtrlBlock != null && hasPermission(mDevice);
     }
 
 //    private boolean hasPermission(UsbDevice device) {
@@ -198,10 +211,16 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 //        }
 //    }
 
+    private void onPositionChanged(String camera) {
+        if (cameraEventsListener != null) {
+            cameraEventsListener.positionChanged(camera);
+        }
+    }
+
     private final USBMonitor.OnDeviceConnectListener deviceConnectListener = new USBMonitor.OnDeviceConnectListener() {
         @Override
         public void onAttach(final UsbDevice device) {
-          //  requestPermission();
+            //requestPermission();
         }
 
         @Override
@@ -209,7 +228,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             mDevice = device;
             mCtrlBlock = ctrlBlock;
 
-            swapCamera(CameraIndex.External);
+            onPositionChanged("external");
         }
 
         @Override
@@ -224,7 +243,9 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             permissionRequested = false;
             uvcVideoCapturer.closeCamera();
 
-            swapCamera(fallbackCameraIndex);
+            if (cameraType != fallbackCameraType) {
+                onPositionChanged("back");
+            }
         }
 
         @Override

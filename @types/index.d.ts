@@ -307,6 +307,8 @@ declare module "opentok-react-native" {
      * Sent when the publisher stops streaming.
      */
     streamDestroyed?: CallbackWithParam<any, any>;
+
+    cameraPositionChanged?: CallbackWithParam<string>
   }
 
   /**
