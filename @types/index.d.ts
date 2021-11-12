@@ -244,7 +244,7 @@ declare module "opentok-react-native" {
     /**
      * The preferred camera position. When setting this property, if the change is possible, the publisher will use the camera with the specified position. Valid Inputs: 'front' or 'back'
      */
-    cameraPosition?: "front" | "back";
+    cameraPosition?: "front" | "back" | "external";
 
     /**
      * The desired frame rate, in frames per second, of the video. Valid values are 30, 15, 7, and 1. The published stream will use the closest value supported on the publishing client. The frame rate can differ slightly from the value you set, depending on the device of the client. And the video will only use the desired frame rate if the client configuration supports it.
@@ -312,7 +312,9 @@ declare module "opentok-react-native" {
   /**
    * https://github.com/opentok/opentok-react-native/blob/master/docs/OTPublisher.md
    */
-  export class OTPublisher extends React.Component<OTPublisherProps> {}
+  export class OTPublisher extends React.Component<OTPublisherProps> {
+    takeSnapshot?(): Promise<string>;
+  }
 
   interface OTSubscriberProps extends ViewProps {
     /**

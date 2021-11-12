@@ -35,6 +35,7 @@ class OTPublisher extends Component {
         Platform.OS === 'android'
           ? 'session:onConnected'
           : 'session:sessionDidConnect',
+      recreatePublisher: 'publisher:Recreate'
     };
     this.componentEventsArray = Object.values(this.componentEvents);
     this.otrnEventHandler = getOtrnErrorEventHandler(this.props.eventHandlers);
@@ -42,6 +43,7 @@ class OTPublisher extends Component {
       this.state.publisherId,
       this.props.eventHandlers
     );
+    this.publisherEvents[`${this.state.publisherId}:${this.componentEvents.recreatePublisher}`] = () => this.recreatePublisherHandler();
     setNativeEvents(this.publisherEvents);
     OT.setJSComponentEvents(this.componentEventsArray);
     if (this.context.sessionId) {
@@ -107,6 +109,11 @@ class OTPublisher extends Component {
       this.initPublisher();
     }
   }
+  recreatePublisherHandler() {
+    OT.recreatePublisher(this.state.publisherId, () => {
+      this.setState({publisher: null }, () => this.createPublisher());
+    });
+  }
   initPublisher() {
     const publisherProperties = sanitizeProperties(this.props.properties);
     OT.initPublisher(
@@ -150,7 +157,7 @@ class OTPublisher extends Component {
     );
   }
   takeSnapshot() {
-    return OT.takePublisherScreenshot(this.state.publisherId);
+    return OT.publisherTakeSnapshot(this.state.publisherId);
   }
   render() {
     const { publisher, publisherId } = this.state;
