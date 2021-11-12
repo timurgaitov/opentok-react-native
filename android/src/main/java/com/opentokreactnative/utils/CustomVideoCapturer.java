@@ -1,10 +1,10 @@
 package com.opentokreactnative.utils;
 
 import android.hardware.usb.UsbDevice;
+import android.util.Log;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.opentok.android.BaseVideoCapturer;
-import com.opentok.android.Publisher;
 import com.serenegiant.usb.USBMonitor;
 
 public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoCapturer.CaptureSwitch {
@@ -16,32 +16,37 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     private boolean isCaptureRunning = false;
     private boolean isCapturePaused = false;
 
-    private final USBMonitor usbMonitor;
+//    private final USBMonitor usbMonitor;
     private final UvcVideoCapturer uvcVideoCapturer;
-    private final AndroidVideoCapturer androidVideoCapturer;
+    //private final AndroidVideoCapturer androidVideoCapturer;
 
     private UsbDevice mDevice;
     private USBMonitor.UsbControlBlock mCtrlBlock;
 
     private boolean permissionRequested = false;
 
-    public CustomVideoCapturer(ReactApplicationContext context, Publisher.CameraCaptureResolution resolution, Publisher.CameraCaptureFrameRate fps) {
+    public CustomVideoCapturer(ReactApplicationContext context, USBMonitor.UsbControlBlock controlBlock) {
         uvcVideoCapturer = new UvcVideoCapturer(context, this);
-        androidVideoCapturer = new AndroidVideoCapturer(context, resolution, fps, this);
-        usbMonitor = new USBMonitor(context, deviceConnectListener);
+        mCtrlBlock = controlBlock;
+        uvcVideoCapturer.openCamera(mCtrlBlock);
+        isCaptureStarted = true;
+        //       androidVideoCapturer = new AndroidVideoCapturer(context, resolution, fps, this);
+//        usbMonitor = new USBMonitor(context, deviceConnectListener);
     }
 
     public synchronized void init() {
-        usbMonitor.register();
+//        usbMonitor.register();
     }
 
     @Override
     public synchronized int startCapture() {
+        Log.i("OTRN", "CustomVideoCapturer startCapture");
         if (isCaptureStarted) {
             return -1;
         }
 
-        int res = cameraType == CameraType.External ? uvcVideoCapturer.startCapture() : androidVideoCapturer.startCapture(cameraType);
+        int res = uvcVideoCapturer.startCapture();
+        // int res = cameraType == CameraType.External ?  : androidVideoCapturer.startCapture(cameraType);
         if (res == 0) {
             isCaptureRunning = true;
             isCaptureStarted = true;
@@ -53,25 +58,20 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     @Override
     public synchronized int stopCapture() {
         isCaptureStarted = false;
-        if (usbMonitor != null) {
-            usbMonitor.unregister();
-            usbMonitor.destroy();
-        }
-        if (cameraType == CameraType.External) {
-            return uvcVideoCapturer.releaseCamera();
-        } else {
-            uvcVideoCapturer.releaseCamera();
-            return androidVideoCapturer.stopCapture();
-        }
+//        if (usbMonitor != null) {
+//            usbMonitor.unregister();
+//            usbMonitor.destroy();
+//        }
+        return uvcVideoCapturer.releaseCamera();
     }
 
     @Override
     public void destroy() {
         uvcVideoCapturer.destroy();
-        if (usbMonitor != null) {
-            usbMonitor.unregister();
-            usbMonitor.destroy();
-        }
+//        if (usbMonitor != null) {
+//            usbMonitor.unregister();
+//            usbMonitor.destroy();
+//        }
     }
 
     @Override
@@ -81,11 +81,13 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     @Override
     public CaptureSettings getCaptureSettings() {
-        return cameraType == CameraType.External ? uvcVideoCapturer.getCaptureSettings() : androidVideoCapturer.getCaptureSettings();
+        return uvcVideoCapturer.getCaptureSettings();
     }
 
     @Override
     public synchronized  void onPause() {
+        Log.i("OTRN", "CustomVideoCapturer onPause");
+
         if (isCaptureStarted) {
             isCapturePaused = true;
             stopCapture();
@@ -94,6 +96,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     @Override
     public void onResume() {
+        Log.i("OTRN", "CustomVideoCapturer onResume");
         if (isCapturePaused) {
             init();
             startCapture();
@@ -119,80 +122,86 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         throw new IllegalStateException();
     }
 
+    public void closeCamera() {
+        uvcVideoCapturer.closeCamera();
+    }
+
     public synchronized void swapCamera(int index) {
-        CameraType swapToCameraType;
+        Log.i("OTRN", "CustomVideoCapturer swapCamera");
+        cameraType = CameraType.External;
 
-        switch (index) {
-            case CameraIndex.External:
-                swapToCameraType = CameraType.External;
-                break;
-            case CameraIndex.Back:
-                swapToCameraType = CameraType.AndroidBack;
-                break;
-            case CameraIndex.Front:
-                swapToCameraType = CameraType.AndroidFront;
-                break;
-            default:
-                return;
-        }
+//
+//        CameraType swapToCameraType;
+//
+//        switch (index) {
+//            case CameraIndex.External:
+//                swapToCameraType = CameraType.External;
+//                break;
+//            case CameraIndex.Back:
+//                swapToCameraType = CameraType.AndroidBack;
+//                break;
+//            case CameraIndex.Front:
+//                swapToCameraType = CameraType.AndroidFront;
+//                break;
+//            default:
+//                return;
+//        }
+//
+//        if (swapToCameraType == cameraType) {
+//            return;
+//        }
+//
+//        if (swapToCameraType == CameraType.External) {
+//            if (mDevice == null || mCtrlBlock == null || !hasPermission(mDevice)) {
+//                swapToCameraType = fallbackCameraType;
+//            }
+//        }
+//
+//        if (cameraType == CameraType.AndroidFront && swapToCameraType == CameraType.AndroidBack
+//            || cameraType == CameraType.AndroidBack && swapToCameraType == CameraType.AndroidFront) {
+//            androidVideoCapturer.swapCamera(swapToCameraType, this.isCaptureStarted);
+//        } else if (swapToCameraType == CameraType.External) {
+//            androidVideoCapturer.stopCapture();
+//            uvcVideoCapturer.openCamera(mCtrlBlock);
+//        } else {
+//            uvcVideoCapturer.stopCapture();
+//            androidVideoCapturer.startCapture(swapToCameraType);
+//        }
 
-        if (swapToCameraType == cameraType) {
-            return;
-        }
-
-        if (swapToCameraType == CameraType.External) {
-            if (mDevice == null || mCtrlBlock == null || !hasPermission(mDevice)) {
-                swapToCameraType = fallbackCameraType;
-            }
-        }
-
-        if (cameraType == CameraType.AndroidFront && swapToCameraType == CameraType.AndroidBack
-            || cameraType == CameraType.AndroidBack && swapToCameraType == CameraType.AndroidFront) {
-            androidVideoCapturer.swapCamera(swapToCameraType, this.isCaptureStarted);
-        } else if (swapToCameraType == CameraType.External) {
-            androidVideoCapturer.stopCapture();
-            final boolean doesNotMatter = false;
-            uvcVideoCapturer.openCamera(mCtrlBlock, doesNotMatter);
-        } else {
-            uvcVideoCapturer.stopCapture();
-            androidVideoCapturer.startCapture(swapToCameraType);
-        }
-
-        cameraType = swapToCameraType;
     }
 
     public boolean getIsCaptureRunning() {
         return  isCaptureRunning;
     }
 
-    private boolean hasPermission(UsbDevice device) {
-        try {
-            return usbMonitor.hasPermission(device);
-        } catch (SecurityException ex) {
-            // ignore
-        }
-        return false;
-    }
-
-    private void requestPermission() {
-        if (permissionRequested) {
-            return;
-        }
-        permissionRequested = true;
-
-        for (UsbDevice device : usbMonitor.getDeviceList()) {
-            try {
-                usbMonitor.requestPermission(device);
-            } catch (SecurityException ex) {
-                // ignore
-            }
-        }
-    }
+//    private boolean hasPermission(UsbDevice device) {
+//        try {
+//            return usbMonitor.hasPermission(device);
+//        } catch (SecurityException ex) {
+//            // ignore
+//        }
+//        return false;
+//    }
+//
+//    private void requestPermission() {
+//        if (permissionRequested) {
+//            return;
+//        }
+//        permissionRequested = true;
+//
+//        for (UsbDevice device : usbMonitor.getDeviceList()) {
+//            try {
+//                usbMonitor.requestPermission(device);
+//            } catch (SecurityException ex) {
+//                // ignore
+//            }
+//        }
+//    }
 
     private final USBMonitor.OnDeviceConnectListener deviceConnectListener = new USBMonitor.OnDeviceConnectListener() {
         @Override
         public void onAttach(final UsbDevice device) {
-            requestPermission();
+          //  requestPermission();
         }
 
         @Override

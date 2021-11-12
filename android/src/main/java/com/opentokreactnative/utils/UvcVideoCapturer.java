@@ -68,7 +68,7 @@ public class UvcVideoCapturer {
     }
 
 
-    public void openCamera(final USBMonitor.UsbControlBlock ctrlBlock, final boolean createNew) {
+    public void openCamera(final USBMonitor.UsbControlBlock ctrlBlock) {
         synchronized (mSync) {
             if (cameraHandler == null) {
                 cameraHandler = UVCCameraHandler.createHandler(activityRef.get(), uvcCameraTextureView, 0, 0);
@@ -116,7 +116,14 @@ public class UvcVideoCapturer {
         @Override
         public void onFrame(ByteBuffer frame) {
             frame.clear();
-            mCustomVideoCapturer.provideBufferFrame(frame, BaseVideoCapturer.NV21, previewWidth, previewHeight, 0, false);
+
+            mCustomVideoCapturer.provideBufferFrame(
+                    frame,
+                    BaseVideoCapturer.NV21,
+                    previewWidth,
+                    previewHeight,
+                    0,
+                    false);
         }
 
         @Override

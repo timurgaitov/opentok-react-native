@@ -4,6 +4,7 @@ package com.opentokreactnative;
  * Created by manik on 1/29/18.
  */
 
+import android.hardware.usb.UsbDevice;
 import android.util.Log;
 import android.widget.FrameLayout;
 import android.view.View;
@@ -33,16 +34,18 @@ import com.opentok.android.OpentokError;
 import com.opentok.android.Subscriber;
 import com.opentok.android.SubscriberKit;
 import com.opentokreactnative.utils.CameraIndex;
+import com.opentokreactnative.utils.CameraPosition;
 import com.opentokreactnative.utils.CustomVideoCapturer;
 import com.opentok.android.VideoUtils;
 import com.opentok.android.AudioDeviceManager;
 import com.opentokreactnative.utils.EventUtils;
 import com.opentokreactnative.utils.ScreenshotVideoRenderer;
+import com.opentokreactnative.utils.UsbMonitorWrapper;
 import com.opentokreactnative.utils.Utils;
+import com.serenegiant.usb.USBMonitor;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.ArrayList;
-import java.util.List;
 
 public class OTSessionManager extends ReactContextBaseJavaModule
         implements Session.SessionListener,
@@ -63,22 +66,29 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     private ConcurrentHashMap<String, Integer> connectionStatusMap = new ConcurrentHashMap<>();
     private ArrayList<String> jsEvents = new ArrayList<String>();
     private ArrayList<String> componentEvents = new ArrayList<String>();
+    private UsbMonitorWrapper usbMonitor;
     private static final String TAG = "OTRN";
     private final String sessionPreface = "session:";
     private final String publisherPreface = "publisher:";
     private final String subscriberPreface = "subscriber:";
-    private Boolean logLevel = false;
+    private Boolean logLevel = true;
     public OTRN sharedState;
+    private Integer currentCameraIndex = null;
+    private Integer requestedCameraIndex = null;
 
     public OTSessionManager(ReactApplicationContext reactContext) {
-
         super(reactContext);
         sharedState = OTRN.getSharedState();
     }
 
     @ReactMethod
     public void initSession(String apiKey, String sessionId, ReadableMap sessionOptions) {
+        if (usbMonitor != null) {
+            usbMonitor.destroy();
+        }
 
+        usbMonitor = new UsbMonitorWrapper(this.getReactApplicationContext());
+        usbMonitor.registerExternalListener(deviceConnectListener);
         final boolean useTextureViews = sessionOptions.getBoolean("useTextureViews");
         final boolean isCamera2Capable = sessionOptions.getBoolean("isCamera2Capable");
         final boolean connectionEventsSuppressed = sessionOptions.getBoolean("connectionEventsSuppressed");
@@ -145,7 +155,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
 
     @ReactMethod
     public void initPublisher(String publisherId, ReadableMap properties, Callback callback) {
-
+        printLogs("Init Publisher");
         String name = properties.getString("name");
         Boolean videoTrack = properties.getBoolean("videoTrack");
         Boolean audioTrack = properties.getBoolean("audioTrack");
@@ -173,7 +183,12 @@ public class OTSessionManager extends ReactContextBaseJavaModule
             mPublisher.setPublisherVideoType(PublisherKit.PublisherKitVideoType.PublisherKitVideoTypeScreen);
         } else {
             ScreenshotVideoRenderer screenshotVideoRenderer = new ScreenshotVideoRenderer(this.getReactApplicationContext());
-            CustomVideoCapturer capturer = new CustomVideoCapturer(this.getReactApplicationContext(), Publisher.CameraCaptureResolution.HIGH, Publisher.CameraCaptureFrameRate.FPS_30);
+            CustomVideoCapturer capturer = null;
+            printLogs("init publish camera: " + cameraPosition);
+            if (cameraPosition.equals(CameraPosition.External) && usbMonitor.isDeviceAvailable()) {
+                printLogs("using custom capturer");
+                capturer = new CustomVideoCapturer(this.getReactApplicationContext(), usbMonitor.getControlBlock());
+            }
             mPublisher = new Publisher.Builder(this.getReactApplicationContext())
                     .audioTrack(audioTrack)
                     .videoTrack(videoTrack)
@@ -184,8 +199,6 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .capturer(capturer)
                     .renderer(screenshotVideoRenderer)
                     .build();
-
-            this.cycleToCameraType(mPublisher, cameraPosition);
         }
         mPublisher.setPublisherListener(this);
         mPublisher.setAudioLevelListener(this);
@@ -194,28 +207,76 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         mPublisher.setPublishAudio(publishAudio);
         ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
         mPublishers.put(publisherId, mPublisher);
+        if (!videoSource.equals("screen")) {
+            this.cycleToCameraType(mPublisher, cameraPosition);
+        }
         callback.invoke();
     }
 
-    private void cycleToCameraType(Publisher mPublisher, String cameraPosition) {
+    private void cycleToCameraType(Publisher publisher, String cameraPosition) {
+        String publisherId = Utils.getPublisherId(publisher);
+
+        printLogs("cycleToCameraType: " + cameraPosition);
         if (cameraPosition == null) {
             return;
         }
 
-        BaseVideoCapturer.CaptureSwitch captureSwitch = (BaseVideoCapturer.CaptureSwitch)mPublisher.getCapturer();
-
-        switch (cameraPosition) {
-            case "external":
-                captureSwitch.swapCamera(CameraIndex.External);
-                break;
-            case "front":
-                captureSwitch.swapCamera(CameraIndex.Front);
-                break;
-            case "back":
-            default:
-                captureSwitch.swapCamera(CameraIndex.Back);
-                break;
+        int nextCameraIndex = CameraIndex.from(cameraPosition);
+        if (nextCameraIndex == CameraIndex.External && !usbMonitor.isDeviceAvailable()) {
+            nextCameraIndex = CameraIndex.defaultCamera;
+            sendOnCameraPositionChangedEvent(publisherId, nextCameraIndex);
+            return;
         }
+        if (currentCameraIndex != null && nextCameraIndex == currentCameraIndex) {
+            printLogs("next camera is same as current: " + currentCameraIndex);
+            return;
+        }
+
+//        if (currentCameraIndex != null && currentCameraIndex == nextCameraIndex
+//                && (currentCameraIndex == CameraIndex.Back || currentCameraIndex == CameraIndex.Front)) {
+//            nextCameraIndex = currentCameraIndex == CameraIndex.Back ? CameraIndex.Front : CameraIndex.Back;
+//        }
+
+        String current = currentCameraIndex != null ? CameraPosition.fromIndex(currentCameraIndex) : "null";
+        printLogs("current camera is: " + current);
+        printLogs("next camera is: " + CameraPosition.fromIndex(nextCameraIndex));
+        // TODO: it's switching when entering encounter room and usb camera is connected
+        if (!isSwitchingAndroidCameras(publisher, nextCameraIndex)) {
+            switchCapturer(publisher);
+            return;
+        }
+
+        if (nextCameraIndex != CameraIndex.External) {
+            BaseVideoCapturer.CaptureSwitch capturer = (BaseVideoCapturer.CaptureSwitch) publisher.getCapturer();
+            capturer.swapCamera(nextCameraIndex);
+        }
+
+        currentCameraIndex = nextCameraIndex;
+    }
+
+    private void sendOnCameraPositionChangedEvent(String publisherId, Integer nextCameraIndex) {
+        String event = publisherId + ":" + publisherPreface +  "onCameraChanged";
+        printLogs(event);
+        if (nextCameraIndex != null) {
+          sendEventWithString(this.getReactApplicationContext(), event, CameraPosition.fromIndex(nextCameraIndex));
+        }
+    }
+
+    private Publisher switchCapturer(Publisher currentPublisher) {
+        String publisherId = Utils.getPublisherId(currentPublisher);
+
+       sendOnCameraPositionChangedEvent(publisherId, CameraIndex.External);
+
+        String event = publisherId + ":" + publisherPreface +  "Recreate";
+        sendEventMap(this.getReactApplicationContext(), event, null);
+
+        printLogs("switching capturer...");
+        return  null;
+    }
+
+    private boolean isSwitchingAndroidCameras(Publisher publisher, int nextCameraIndex) {
+        boolean isCapturerCustom = publisher.getCapturer() instanceof CustomVideoCapturer;
+        return !isCapturerCustom && (nextCameraIndex == CameraIndex.Back || nextCameraIndex == CameraIndex.Front);
     }
 
     @ReactMethod
@@ -388,6 +449,8 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         Publisher mPublisher = sharedState.getPublisher(publisherId);
         if (mPublisher != null) {
             this.cycleToCameraType(mPublisher, cameraPosition);
+        } else {
+            printLogs("publisher is null: " + publisherId);
         }
     }
 
@@ -448,7 +511,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
 
     @ReactMethod
     public void destroyPublisher(final String publisherId, final Callback callback) {
-
+        printLogs("destroyPublisher: " + publisherId);
         UiThreadUtil.runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -474,6 +537,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                 }
                 if (mPublisher != null) {
                     try {
+                        printLogs("Stopping capture: " + publisherId);
                         mPublisher.getCapturer().stopCapture();
                     } catch (Exception ex) {
                         // ignore
@@ -489,6 +553,8 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         Publisher publisher = sharedState.getPublisher(publisherId);
         if (publisher != null && publisher.getRenderer() instanceof ScreenshotVideoRenderer) {
             ((ScreenshotVideoRenderer) publisher.getRenderer()).saveScreenshot(promise);
+        } else {
+            promise.reject("Unable to snapshot", "Publisher doesn't have a snapshot renderer");
         }
     }
 
@@ -508,6 +574,35 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     @ReactMethod
     public void enableLogs(Boolean logLevel) {
         setLogLevel(logLevel);
+    }
+
+    @ReactMethod
+    public void recreatePublisher(String publisherId, Callback callback) {
+        FrameLayout publisherViewContainer = sharedState.getPublisherViewContainers().get(publisherId);
+        Publisher publisher = sharedState.getPublishers().get(publisherId);
+
+        Session session = null;
+        if (publisher != null && publisher.getSession() != null && publisher.getSession().getSessionId() != null) {
+            session = sharedState.getSessions().get(publisher.getSession().getSessionId());
+        }
+        if (publisherViewContainer != null) {
+            printLogs("removing publisher views..." + publisherId);
+            publisherViewContainer.removeAllViews();
+        }
+        sharedState.getPublisherViewContainers().remove(publisherId);
+        if (session != null && publisher != null) {
+            printLogs("unpublishing publisher views..." + publisherId);
+            session.unpublish(publisher);
+        }
+        if (publisher != null) {
+            printLogs("destroying publisher..." + publisherId);
+            publisher.getCapturer().stopCapture();
+            publisher.getCapturer().destroy();
+        }
+
+        if (callback != null) {
+            callback.invoke();
+        }
     }
 
     private void setLogLevel(Boolean logLevel) {
@@ -570,6 +665,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
 
     @Override
     public void onDisconnected(Session session) {
+        if (usbMonitor != null) {
+            usbMonitor.destroy();
+        }
         ConcurrentHashMap<String, Session> mSessions = sharedState.getSessions();
         ConcurrentHashMap<String, Callback> mSessionDisconnectCallbacks = sharedState.getSessionDisconnectCallbacks();
         ConcurrentHashMap<String, Callback> mSessionConnectCallbacks = sharedState.getSessionDisconnectCallbacks();
@@ -683,7 +781,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         ConcurrentHashMap<String, Stream> mSubscriberStreams = sharedState.getSubscriberStreams();
         mSubscriberStreams.put(stream.getStreamId(), stream);
         if (publisherId.length() > 0) {
-            String event = publisherId + ":" + publisherPreface + "onStreamCreated";;
+            String event = publisherId + ":" + publisherPreface + "onStreamCreated";
             WritableMap streamInfo = EventUtils.prepareJSStreamMap(stream, publisherKit.getSession());
             sendEventMap(this.getReactApplicationContext(), event, streamInfo);
         }
@@ -703,6 +801,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
             WritableMap streamInfo = EventUtils.prepareJSStreamMap(stream, publisherKit.getSession());
             sendEventMap(this.getReactApplicationContext(), event, streamInfo);
         }
+        printLogs("onStreamDestroyed: Publisher id "+ publisherId);
         Callback mCallback = sharedState.getPublisherDestroyedCallbacks().get(publisherId);
         if (mCallback != null) {
             mCallback.invoke();
@@ -987,4 +1086,36 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         printLogs("onStreamVideoTypeChanged");
     }
 
+    private final USBMonitor.OnDeviceConnectListener deviceConnectListener = new USBMonitor.OnDeviceConnectListener() {
+        @Override
+        public void onAttach(final UsbDevice device) {}
+
+        @Override
+        public void onConnect(final UsbDevice device, final USBMonitor.UsbControlBlock ctrlBlock, final boolean createNew) {
+            printLogs("Device onConnect");
+            if (currentCameraIndex != null && currentCameraIndex != CameraIndex.External) {
+                // TODO: getting first publisher is not clean
+                Publisher publisher = (Publisher) sharedState.getPublishers().values().toArray()[0];
+                cycleToCameraType(publisher, CameraPosition.External);
+            }
+        }
+
+        @Override
+        public void onDisconnect(final UsbDevice device, final USBMonitor.UsbControlBlock ctrlBlock) {
+        }
+
+        @Override
+        public void onDettach(final UsbDevice device) {
+            printLogs("Device onDettach");
+            Object[] publishers = sharedState.getPublishers().values().toArray();
+            if (publishers.length > 0) {
+                Publisher publisher = (Publisher) publishers[0];
+                cycleToCameraType(publisher, CameraPosition.defaultCamera);
+            }
+        }
+
+        @Override
+        public void onCancel(final UsbDevice device) {
+        }
+    };
 }

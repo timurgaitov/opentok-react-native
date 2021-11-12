@@ -1,22 +1,19 @@
 package com.opentokreactnative.utils;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
-import android.os.Environment;
 import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 
 import com.facebook.react.bridge.Promise;
-import com.facebook.react.bridge.ReactContext;
+import com.facebook.react.bridge.ReactApplicationContext;
 import com.opentok.android.BaseVideoRenderer;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -30,7 +27,7 @@ public class ScreenshotVideoRenderer extends BaseVideoRenderer {
 
     private final static String TAG = ScreenshotVideoRenderer.class.getSimpleName();
 
-    ReactContext context;
+    Context context;
     GLSurfaceView view;
     MyRenderer renderer;
 
@@ -48,7 +45,6 @@ public class ScreenshotVideoRenderer extends BaseVideoRenderer {
         // number of coordinates per vertex in this array
         static final int COORDS_PER_VERTEX = 3;
         static final int TEXTURE_COORDS_PER_VERTEX = 2;
-        private static final int PREALLOCATE_SIZE = 64 * 1024;
 
         static float xyzCoords[] = {-1.0f, 1.0f, 0.0f, // top left
                 -1.0f, -1.0f, 0.0f, // bottom left
@@ -101,7 +97,6 @@ public class ScreenshotVideoRenderer extends BaseVideoRenderer {
         private int viewportHeight;
         private boolean saveScreenshot;
         private Promise promise;
-        private static byte[] outputBuffer = new byte[PREALLOCATE_SIZE];
 
         public MyRenderer() {
             ByteBuffer bb = ByteBuffer.allocateDirect(xyzCoords.length * 4);
@@ -335,7 +330,7 @@ public class ScreenshotVideoRenderer extends BaseVideoRenderer {
                 try {
                     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                     bmp.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-                    byte[] byteArray = byteArrayOutputStream .toByteArray();
+                    byte[] byteArray = byteArrayOutputStream.toByteArray();
                     String encoded = Base64.encodeToString(byteArray, Base64.DEFAULT);
 
                     promise.resolve(encoded);
@@ -421,8 +416,8 @@ public class ScreenshotVideoRenderer extends BaseVideoRenderer {
         }
     };
 
-    public ScreenshotVideoRenderer(ReactContext context) {
-        this.context = context;
+    public ScreenshotVideoRenderer(ReactApplicationContext context) {
+        this.context = context.getBaseContext();
 
         view = new GLSurfaceView(context);
         view.setEGLContextClientVersion(2);
