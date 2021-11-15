@@ -594,9 +594,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     public void onStreamReceived(Session session, Stream stream) {
         String streamId = stream.getStreamId();
         printLogs("onStreamReceived: New Stream Received " + streamId + " in session: " + session.getSessionId());
-        ConcurrentHashMap<String, Stream> destroyedStreams = sharedState.getPublisherDestroyedStreams();
-        Stream destroyedStream = destroyedStreams.get(streamId);
-        if (destroyedStream != null) {
+        ConcurrentHashMap<String, Boolean> destroyedStreams = sharedState.getPublisherDestroyedStreams();
+        boolean streamWasDestroyed = destroyedStreams.containsKey(streamId);
+        if (streamWasDestroyed) {
             printLogs("Stream already destroyed: " + streamId);
             destroyedStreams.remove(streamId);
             return;
@@ -707,8 +707,10 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         String publisherId = Utils.getPublisherId(publisherKit);
         String event = publisherId + ":" + publisherPreface + "onStreamDestroyed";
         ConcurrentHashMap<String, Stream> mSubscriberStreams = sharedState.getSubscriberStreams();
+
         String streamId = stream.getStreamId();
-        sharedState.getPublisherDestroyedStreams().put(streamId, stream);
+        sharedState.registerPublisherDestroyedStream(streamId);
+
         mSubscriberStreams.remove(streamId);
         if (publisherId.length() > 0) {
             printLogs("onStreamDestroyed publisherId: " + publisherId);
