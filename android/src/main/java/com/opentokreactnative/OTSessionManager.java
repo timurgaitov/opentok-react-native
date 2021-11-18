@@ -89,9 +89,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
             OTCustomAudioDriver otCustomAudioDriver = new OTCustomAudioDriver(this.getReactApplicationContext());
             AudioDeviceManager.setAudioDevice(otCustomAudioDriver);
         }
-        final List<IceServer> iceServersList = Utils.sanitizeIceServer(sessionOptions.getArray("customServers"));
-        final IncludeServers includeServers = Utils.sanitizeIncludeServer(sessionOptions.getString("includeServers"));
-        final TransportPolicy transportPolicy = Utils.sanitizeTransportPolicy(sessionOptions.getString("transportPolicy"));
+//        final List<IceServer> iceServersList = Utils.sanitizeIceServer(sessionOptions.getArray("customServers"));
+//        final IncludeServers includeServers = Utils.sanitizeIncludeServer(sessionOptions.getString("includeServers"));
+//        final TransportPolicy transportPolicy = Utils.sanitizeTransportPolicy(sessionOptions.getString("transportPolicy"));
         final String proxyUrl = sessionOptions.getString("proxyUrl");
         String androidOnTop = sessionOptions.getString("androidOnTop");
         String androidZOrder = sessionOptions.getString("androidZOrder");
@@ -113,8 +113,8 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     }
                 })
                 .connectionEventsSuppressed(connectionEventsSuppressed)
-                .setCustomIceServers(iceServersList, includeServers)
-                .setIceRouting(transportPolicy)
+//                .setCustomIceServers(iceServersList, includeServers)
+//                .setIceRouting(transportPolicy)
                 .setIpWhitelist(ipWhitelist)
                 .setProxyUrl(proxyUrl)
                 .build();
