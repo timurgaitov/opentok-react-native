@@ -31,7 +31,7 @@ public class OTRN {
     private ConcurrentHashMap<String, Callback> sessionConnectCallbacks = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Callback> sessionDisconnectCallbacks = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Connection> connections = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, Stream> publisherDestroyedStreams = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Boolean> publisherDestroyedStreams = new ConcurrentHashMap<>();
 
     public static synchronized OTRN getSharedState() {
 
@@ -111,7 +111,11 @@ public class OTRN {
         return this.sessions;
     }
 
-    public ConcurrentHashMap<String, Stream> getPublisherDestroyedStreams() {
+    public void registerPublisherDestroyedStream(String streamId) {
+        this.publisherDestroyedStreams.put(streamId, true);
+    }
+
+    public ConcurrentHashMap<String, Boolean> getPublisherDestroyedStreams() {
         return this.publisherDestroyedStreams;
     }
 
