@@ -110,8 +110,8 @@ class OTPublisher extends Component {
     }
   }
   recreatePublisherHandler() {
-    OT.recreatePublisher(this.state.publisherId, () => {
-      this.setState({publisher: null }, () => this.createPublisher());
+    OT.removePublisher(this.state.publisherId, () => {
+      this.setState({publisher: null}, () => this.createPublisher());
     });
   }
   initPublisher() {

@@ -109,8 +109,11 @@ public class UsbMonitorWrapper {
     }
 
     public void destroy() {
+        permissionRequested = false;
         externalListener = null;
-        usbMonitor.destroy();
+        if (usbMonitor != null) {
+            usbMonitor.destroy();
+        }
         usbMonitor = null;
         usbDevice = null;
         controlBlock = null;
