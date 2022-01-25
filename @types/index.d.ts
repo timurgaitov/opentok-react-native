@@ -91,6 +91,8 @@ declare module "opentok-react-native" {
      * Event handlers passed into the native session instance.
      */
     eventHandlers?: OTSessionEventHandlers;
+
+    createSession?: any;
   }
 
   interface OTSessionSessionOptions {
@@ -229,6 +231,10 @@ declare module "opentok-react-native" {
      * Event handlers passed into native publsiher instance
      */
     eventHandlers?: OTPublisherEventHandlers;
+
+    swap?: boolean;
+
+    fitToView?: string;
   }
 
   interface OTPublisherProperties {
@@ -437,6 +443,10 @@ declare module "opentok-react-native" {
      * OpenTok Subscriber streamId.
      */
     streamId?: string;
+
+    swap?: boolean;
+
+    fitToView?: string;
   }
 
   /**
