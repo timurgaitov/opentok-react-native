@@ -440,7 +440,7 @@ extension OTSessionManager: OTSessionDelegate {
     }
     
     func session(_ session: OTSession, streamCreated stream: OTStream) {
-        if OTRN.sharedState.publisherDestroyedStreams[stream.streamId] == nil {
+        if OTRN.sharedState.publisherDestroyedStreams[stream.streamId] != nil {
             return
         }
         OTRN.sharedState.subscriberStreams.updateValue(stream, forKey: stream.streamId)

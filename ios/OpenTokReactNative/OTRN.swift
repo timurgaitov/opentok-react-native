@@ -21,7 +21,7 @@ class OTRN : NSObject {
   var isPublishing = [String: Bool]()
   var streamObservers = [String: [NSKeyValueObservation]]()
   var connections = [String: OTConnection]()
-  var publisherDestroyedStreams = [String: Bool]
+  var publisherDestroyedStreams = [String: Bool]()
   override init() {
     super.init()
   }
