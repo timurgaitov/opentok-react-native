@@ -446,9 +446,6 @@ extension OTSessionManager: OTSessionDelegate {
     }
     
     func session(_ session: OTSession, streamCreated stream: OTStream) {
-        if OTRN.sharedState.publisherDestroyedStreams[stream.streamId] != nil {
-            return
-        }
         OTRN.sharedState.subscriberStreams.updateValue(stream, forKey: stream.streamId)
         let streamInfo: Dictionary<String, Any> = EventUtils.prepareJSStreamEventData(stream)
         self.emitEvent("\(session.sessionId):\(EventUtils.sessionPreface)streamCreated", data: streamInfo)
@@ -499,7 +496,6 @@ extension OTSessionManager: OTPublisherDelegate {
         OTRN.sharedState.subscriberStreams.removeValue(forKey: stream.streamId)
         let publisherId = Utils.getPublisherId(publisher as! OTPublisher);
         OTRN.sharedState.isPublishing[publisherId] = false;
-        OTRN.sharedState.publisherDestroyedStreams[stream.streamId] = true;
         if (publisherId.count > 0) {
             OTRN.sharedState.isPublishing[publisherId] = false;
             let streamInfo: Dictionary<String, Any> = EventUtils.prepareJSStreamEventData(stream);
