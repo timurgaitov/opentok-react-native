@@ -52,11 +52,6 @@ export default class OTSession extends Component {
     };
 
     updateSessionProperty('signal', {});
-
-    if (this.props['createSession'] !== previousProps['createSession']) {
-      const sessionOptions = sanitizeSessionOptions(this.props.options);
-      this.createSession(this.sanitizedCredentials, sessionOptions);
-    }
   }
   componentWillUnmount() {
     this.disconnectSession();
@@ -129,7 +124,6 @@ OTSession.propTypes = {
   eventHandlers: PropTypes.object, // eslint-disable-line react/forbid-prop-types
   options: PropTypes.object, // eslint-disable-line react/forbid-prop-types
   signal: PropTypes.object, // eslint-disable-line react/forbid-prop-types
-  createSession: PropTypes.any,
 };
 
 OTSession.defaultProps = {
