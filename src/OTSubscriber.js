@@ -89,11 +89,8 @@ export default class OTSubscriber extends Component {
       if (error) {
         this.otrnEventHandler(error);
       } else {
-        const indexOfStream = this.state.streams.indexOf(stream.streamId);
-        const newState = this.state.streams.slice();
-        newState.splice(indexOfStream, 1);
         this.setState({
-          streams: newState,
+          streams: this.state.streams.filter(s => s !== stream.streamId),
         });
       }
     });
