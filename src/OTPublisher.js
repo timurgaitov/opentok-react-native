@@ -78,6 +78,8 @@ class OTPublisher extends Component {
 
     updatePublisherProperty('publishAudio', true);
     updatePublisherProperty('publishVideo', true);
+    updatePublisherProperty('backgroundBlur', false);
+    updatePublisherProperty('pixelatedFace', false);
     updatePublisherProperty('cameraPosition', 'front');
     updatePublisherProperty('videoContentHint', '');
   }

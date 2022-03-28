@@ -233,6 +233,11 @@ declare module "opentok-react-native" {
     swap?: boolean;
 
     fitToView?: string;
+
+    backgroundBlur?: boolean;
+
+    pixelatedFace?: boolean;
+    
   }
 
   interface OTPublisherProperties {
