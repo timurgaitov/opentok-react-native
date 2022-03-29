@@ -1,15 +1,12 @@
 package com.opentokreactnative;
 
+import android.opengl.GLSurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.opengl.GLSurfaceView;
 
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.opentok.android.BaseVideoRenderer;
 import com.opentok.android.Publisher;
-import com.opentokreactnative.mlkit.camera.CameraSourcePreview;
-import com.opentokreactnative.mlkit.graphics.GraphicOverlay;
-import com.opentokreactnative.utils.CustomVideoCapturer;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -62,23 +59,8 @@ public class OTPublisherLayout extends FrameLayout{
             ConcurrentHashMap<String, FrameLayout> mPublisherViewContainers = sharedState.getPublisherViewContainers();
             mPublisherViewContainers.put(publisherId, mPublisherViewContainer);
             addView(mPublisherViewContainer, 0);
-
-            GraphicOverlay graphicOverlay = new GraphicOverlay(getContext(), null);
-            CameraSourcePreview preview = new CameraSourcePreview(getContext(), null);
-
-            mPublisherViewContainer.addView(preview);
-            mPublisherViewContainer.addView(graphicOverlay);
-
-            preview.setVisibility(INVISIBLE);
-            graphicOverlay.setVisibility(INVISIBLE);
-
             mPublisherViewContainer.addView(mPublisher.getView());
-
             requestLayout();
-            if (mPublisher.getCapturer() instanceof CustomVideoCapturer) {
-                CustomVideoCapturer capturer = (CustomVideoCapturer) mPublisher.getCapturer();
-                capturer.initCamera(preview, graphicOverlay);
-            }
         }
 
     }

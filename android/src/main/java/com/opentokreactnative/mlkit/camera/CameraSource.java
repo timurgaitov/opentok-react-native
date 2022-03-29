@@ -35,7 +35,6 @@ import androidx.annotation.RequiresPermission;
 import com.google.android.gms.common.images.Size;
 import com.opentokreactnative.mlkit.processors.base.ProcessorFrameListener;
 import com.opentokreactnative.mlkit.processors.base.VisionImageProcessor;
-import com.opentokreactnative.mlkit.graphics.GraphicOverlay;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -93,8 +92,6 @@ public class CameraSource {
   // to it.
   private SurfaceTexture dummySurfaceTexture;
 
-  private final GraphicOverlay graphicOverlay;
-
   /**
    * Dedicated thread and associated runnable for calling into the detector with frames, as the
    * frames become available from the camera.
@@ -118,10 +115,8 @@ public class CameraSource {
    */
   private final IdentityHashMap<byte[], ByteBuffer> bytesToByteBuffer = new IdentityHashMap<>();
 
-  public CameraSource(Activity activity, GraphicOverlay overlay) {
+  public CameraSource(Activity activity) {
     this.activity = activity;
-    graphicOverlay = overlay;
-    graphicOverlay.clear();
     processingRunnable = new FrameProcessingRunnable();
   }
 
@@ -133,7 +128,6 @@ public class CameraSource {
   public void release() {
     synchronized (processorLock) {
       stop();
-      cleanScreen();
 
       if (frameProcessor != null) {
         frameProcessor.stop();
@@ -567,7 +561,7 @@ public class CameraSource {
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
       processingRunnable.setNextFrame(data, camera);
-      if (!frameProcessor.enabled() && frameListener != null) {
+      if (!frameProcessor.active() && frameListener != null) {
           frameListener.onFrame(data, previewSize.getWidth(), previewSize.getHeight(), rotationDegrees);
       }
     }
@@ -575,7 +569,6 @@ public class CameraSource {
 
   public void setMachineLearningFrameProcessor(VisionImageProcessor processor) {
     synchronized (processorLock) {
-      cleanScreen();
       if (frameProcessor != null) {
         frameProcessor.stop();
       }
@@ -695,15 +688,14 @@ public class CameraSource {
 
         try {
           synchronized (processorLock) {
-            if (frameProcessor.enabled() || frameListener == null) {
+            if (frameProcessor.active() || frameListener == null) {
               frameProcessor.processByteBuffer(
                       data,
                       new FrameMetadata.Builder()
                               .setWidth(previewSize.getWidth())
                               .setHeight(previewSize.getHeight())
                               .setRotation(rotationDegrees)
-                              .build(),
-                      graphicOverlay);
+                              .build());
             }
           }
         } catch (Exception t) {
@@ -713,10 +705,5 @@ public class CameraSource {
         }
       }
     }
-  }
-
-  /** Cleans up graphicOverlay and child classes can do their cleanups as well . */
-  private void cleanScreen() {
-    graphicOverlay.clear();
   }
 }

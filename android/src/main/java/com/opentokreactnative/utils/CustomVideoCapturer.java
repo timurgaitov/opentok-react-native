@@ -2,172 +2,74 @@ package com.opentokreactnative.utils;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 
 import com.opentok.android.BaseVideoCapturer;
 import com.opentokreactnative.mlkit.camera.CameraSource;
+import com.opentokreactnative.mlkit.processors.VideoFiltersProcessor;
 import com.opentokreactnative.mlkit.processors.base.ProcessorFrameListener;
-import com.opentokreactnative.mlkit.camera.CameraSourcePreview;
-import com.opentokreactnative.mlkit.graphics.GraphicOverlay;
-import com.opentokreactnative.mlkit.processors.MultiProcessor;
-
-import java.io.IOException;
-import java.lang.ref.WeakReference;
 
 public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoCapturer.CaptureSwitch, ProcessorFrameListener {
 
     final private String TAG = "CustomVideoCapturer";
-    final private WeakReference<Activity> activityRef;
-    private CameraSourcePreview preview;
-    private GraphicOverlay graphicOverlay;
 
-    private MultiProcessor multiProcessor;
-    private boolean backgroundBlurEnabled;
-    private boolean pixelatedFaceEnabled;
-    private Canvas canvas;
-    private Bitmap bitmap;
+    private final VideoFiltersProcessor videoFiltersProcessor;
     private CameraSource cameraSource;
     private boolean isCapturing = false;
-    private boolean capturingRequested = false;
-    final private int fps = 30;
+    private final int fps = 30;
     private int width = 0;
     private int height = 0;
-    private int[] frame;
-
-
-    final private Handler handler = new Handler(Looper.myLooper());
-
-    final private Runnable screenShareTask = new Runnable() {
-        @Override
-        public void run() {
-            if (isCapturing) {
-                int width = graphicOverlay.getWidth();
-                int height = graphicOverlay.getHeight();
-                if (frame == null || CustomVideoCapturer.this.width != width || CustomVideoCapturer.this.height != height) {
-                    CustomVideoCapturer.this.width = width;
-                    CustomVideoCapturer.this.height = height;
-
-                    if (width <= 0 || height <= 0) {
-                        handler.postDelayed(screenShareTask, 1000 / fps);
-                        return;
-                    }
-
-                    if (bitmap != null) {
-                        bitmap.recycle();
-                        bitmap = null;
-                    }
-
-                    bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                    canvas = new Canvas(bitmap);
-
-                    frame = new int[width * height];
-                }
-
-                if (graphicOverlay != null) {
-                    graphicOverlay.draw(canvas);
-                    bitmap.getPixels(frame, 0, width, 0, 0, width, height);
-
-                    provideIntArrayFrame(frame, ARGB, width, height, 0, false);
-                }
-
-                handler.postDelayed(screenShareTask, 1000 / fps);
-            }
-        }
-    };
 
     public CustomVideoCapturer(Activity activity) {
-        activityRef = new WeakReference<>(activity);
-    }
-
-    public void initCamera(CameraSourcePreview sourcePreview, GraphicOverlay overlay) {
-        this.preview = sourcePreview;
-        this.graphicOverlay = overlay;
-
-        Activity activity = activityRef.get();
-        cameraSource = new CameraSource(activity, graphicOverlay);
+        cameraSource = new CameraSource(activity);
         cameraSource.setFacing(CameraSource.CAMERA_FACING_FRONT);
 
-        multiProcessor = new MultiProcessor(activity);
-        multiProcessor.enableBackgroundBlur = backgroundBlurEnabled;
-        multiProcessor.enablePixelatedFace = pixelatedFaceEnabled;
+        videoFiltersProcessor = new VideoFiltersProcessor(activity, this);
 
-        cameraSource.setMachineLearningFrameProcessor(multiProcessor);
+        cameraSource.setMachineLearningFrameProcessor(videoFiltersProcessor);
         cameraSource.setFrameListener(this);
-        if (capturingRequested) {
-            startCapture();
-        }
     }
 
     public void enableBackgroundBlur(boolean enable) {
-        backgroundBlurEnabled = enable;
-        if (multiProcessor != null) {
-            startScreenSharingIfNeeded();
-            multiProcessor.enableBackgroundBlur = enable;
-        }
+        videoFiltersProcessor.enableBackgroundBlur = enable;
     }
 
     public void enablePixelatedFace(boolean enable) {
-        pixelatedFaceEnabled = enable;
-        if (multiProcessor != null) {
-            startScreenSharingIfNeeded();
-            multiProcessor.enablePixelatedFace = enable;
-        }
+        videoFiltersProcessor.enablePixelatedFace = enable;
     }
 
     @Override
     public void init() {
     }
 
-    @SuppressLint("MissingPermission")
     @Override
     public int startCapture() {
-        if (preview != null && graphicOverlay != null) {
-            isCapturing = true;
-            capturingRequested = false;
-            preview.stop();
-            startCameraSource();
-            startScreenSharingIfNeeded();
-        } else {
-            capturingRequested = true;
-        }
+        isCapturing = true;
+        cameraSource.stop();
+        startCameraSource();
         return 0;
     }
 
     @Override
     public int stopCapture() {
         isCapturing = false;
-        capturingRequested = false;
-        handler.removeCallbacks(screenShareTask);
-        preview.stop();
+        cameraSource.stop();
         return 0;
     }
 
+    @SuppressLint("MissingPermission")
     private void startCameraSource() {
         if (cameraSource != null) {
             try {
-                preview.start(cameraSource, graphicOverlay);
-            } catch (IOException e) {
-                Log.e(TAG, "Unable to start camera source.", e);
+                cameraSource.start();
+            } catch (Exception e) {
                 cameraSource.release();
                 cameraSource = null;
             }
         }
     }
 
-    private void startScreenSharingIfNeeded() {
-        handler.removeCallbacks(screenShareTask);
-
-        if (isCapturing && (pixelatedFaceEnabled || backgroundBlurEnabled)) {
-            handler.postDelayed(screenShareTask, 0);
-        }
-    }
-
     private int currentVideFormat() {
-        return (pixelatedFaceEnabled || backgroundBlurEnabled) ? ARGB : NV21;
+        return videoFiltersProcessor.active() ? ARGB : NV21;
     }
 
     @Override
@@ -205,7 +107,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
                 : CameraSource.CAMERA_FACING_FRONT;
 
         cameraSource.setFacing(next);
-        preview.stop();
+        cameraSource.stop();
         startCameraSource();
     }
 
@@ -221,6 +123,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     @Override
     public void destroy() {
+        cameraSource.stop();
     }
 
     @Override
@@ -234,6 +137,21 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
                 width,
                 height,
                 rotation,
+                getCameraIndex() == CameraSource.CAMERA_FACING_FRONT
+        );
+    }
+
+    @Override
+    public void onFrame(int[] frame, int width, int height, int rotation) {
+        this.width = width;
+        this.height = height;
+
+        provideIntArrayFrame(
+                frame,
+                ARGB,
+                width,
+                height,
+                0,
                 getCameraIndex() == CameraSource.CAMERA_FACING_FRONT
         );
     }

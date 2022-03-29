@@ -22,21 +22,20 @@ import android.graphics.Bitmap;
 
 import com.google.mlkit.common.MlKitException;
 import com.opentokreactnative.mlkit.camera.FrameMetadata;
-import com.opentokreactnative.mlkit.graphics.GraphicOverlay;
 
 import java.nio.ByteBuffer;
 
 /** An interface to process the images with different vision detectors and custom image models. */
 public interface VisionImageProcessor {
 
-  boolean enabled();
+  boolean active();
 
   /** Processes a bitmap image. */
-  void processBitmap(Bitmap bitmap, GraphicOverlay graphicOverlay);
+  void processBitmap(Bitmap bitmap);
 
   /** Processes ByteBuffer image data, e.g. used for Camera1 live preview case. */
   void processByteBuffer(
-          ByteBuffer data, FrameMetadata frameMetadata, GraphicOverlay graphicOverlay)
+          ByteBuffer data, FrameMetadata frameMetadata)
       throws MlKitException;
 
   /** Stops the underlying machine learning model and release resources. */
