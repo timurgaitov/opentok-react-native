@@ -44,16 +44,12 @@ public class VideoFiltersProcessor extends VisionProcessorBase<List<Task<?>>> {
     }
 
     private void setupFaceDetector() {
-        FaceDetectorOptions faceDetectorOptions = new FaceDetectorOptions.Builder()
-                .build();
+        FaceDetectorOptions faceDetectorOptions = new FaceDetectorOptions.Builder().build();
         faceDetector = FaceDetection.getClient(faceDetectorOptions);
     }
 
     private void setupSegmenter() {
-        SelfieSegmenterOptions.Builder optionsBuilder = new SelfieSegmenterOptions.Builder();
-        optionsBuilder.setDetectorMode(SelfieSegmenterOptions.STREAM_MODE);
-
-        SelfieSegmenterOptions options = optionsBuilder
+        SelfieSegmenterOptions options = new SelfieSegmenterOptions.Builder()
                 .setDetectorMode(SelfieSegmenterOptions.STREAM_MODE)
                 .build();
         segmenter = Segmentation.getClient(options);
@@ -86,7 +82,7 @@ public class VideoFiltersProcessor extends VisionProcessorBase<List<Task<?>>> {
         Face face = null;
         for (Task<?> task : results) {
             Object taskResult = task.getResult();
-           if (taskResult instanceof SegmentationMask && enableBackgroundBlur) {
+            if (taskResult instanceof SegmentationMask && enableBackgroundBlur) {
                 mask = ((SegmentationMask) taskResult);
             } else if (taskResult instanceof List<?> && enablePixelatedFace) {
                 face = getFace((List<?>) taskResult);
