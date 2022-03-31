@@ -5,8 +5,8 @@ package com.opentokreactnative;
  */
 
 import android.util.Log;
-import android.widget.FrameLayout;
 import android.view.View;
+import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
 
@@ -16,31 +16,31 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.ReadableArray;
-
-import com.opentok.android.Session;
+import com.opentok.android.AudioDeviceManager;
 import com.opentok.android.Connection;
+import com.opentok.android.OpentokError;
 import com.opentok.android.Publisher;
 import com.opentok.android.PublisherKit;
+import com.opentok.android.Session;
+import com.opentok.android.Session.Builder.IceServer;
+import com.opentok.android.Session.Builder.IncludeServers;
+import com.opentok.android.Session.Builder.TransportPolicy;
 import com.opentok.android.Stream;
-import com.opentok.android.OpentokError;
 import com.opentok.android.Subscriber;
 import com.opentok.android.SubscriberKit;
 import com.opentok.android.VideoUtils;
-import com.opentok.android.Session.Builder.TransportPolicy;
-import com.opentok.android.Session.Builder.IncludeServers;
-import com.opentok.android.Session.Builder.IceServer;
-import com.opentok.android.AudioDeviceManager;
+import com.opentokreactnative.utils.CustomVideoCapturer;
 import com.opentokreactnative.utils.EventUtils;
 import com.opentokreactnative.utils.Utils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.ArrayList;
 
 public class OTSessionManager extends ReactContextBaseJavaModule
         implements Session.SessionListener,
@@ -154,6 +154,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         Boolean publishAudio = properties.getBoolean("publishAudio");
         Boolean publishVideo = properties.getBoolean("publishVideo");
         String videoSource = properties.getString("videoSource");
+        boolean blurBackground = properties.getBoolean("backgroundBlur");
+        boolean pixelatedFace = properties.getBoolean("pixelatedFace");
+
         Publisher mPublisher = null;
         if (videoSource.equals("screen")) {
             View view = getCurrentActivity().getWindow().getDecorView().getRootView();
@@ -169,6 +172,10 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .build();
             mPublisher.setPublisherVideoType(PublisherKit.PublisherKitVideoType.PublisherKitVideoTypeScreen);
         } else {
+            CustomVideoCapturer capturer = new CustomVideoCapturer(getCurrentActivity());
+            capturer.enableBackgroundBlur(blurBackground);
+            capturer.enablePixelatedFace(pixelatedFace);
+
             mPublisher = new Publisher.Builder(this.getReactApplicationContext())
                     .audioTrack(audioTrack)
                     .videoTrack(videoTrack)
@@ -176,6 +183,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .audioBitrate(audioBitrate)
                     .resolution(Publisher.CameraCaptureResolution.valueOf(resolution))
                     .frameRate(Publisher.CameraCaptureFrameRate.valueOf(frameRate))
+                    .capturer(capturer)
                     .build();
             if (cameraPosition.equals("back")) {
                 mPublisher.cycleCamera();
@@ -375,6 +383,24 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         Publisher mPublisher = mPublishers.get(publisherId);
         if (mPublisher != null && mPublisher.getCapturer() != null) {
             mPublisher.getCapturer().setVideoContentHint(Utils.convertVideoContentHint(videoContentHint));
+        }
+    }
+
+    @ReactMethod
+    public void backgroundBlur(String publisherId, boolean enable) {
+        ConcurrentHashMap<String, Publisher> publishers = sharedState.getPublishers();
+        Publisher publisher = publishers.get(publisherId);
+        if (publisher != null && publisher.getCapturer() != null && publisher.getCapturer() instanceof CustomVideoCapturer) {
+            ((CustomVideoCapturer) publisher.getCapturer()).enableBackgroundBlur(enable);
+        }
+    }
+
+    @ReactMethod
+    public void pixelatedFace(String publisherId, boolean enable) {
+        ConcurrentHashMap<String, Publisher> publishers = sharedState.getPublishers();
+        Publisher publisher = publishers.get(publisherId);
+        if (publisher != null && publisher.getCapturer() != null && publisher.getCapturer() instanceof CustomVideoCapturer) {
+            ((CustomVideoCapturer) publisher.getCapturer()).enablePixelatedFace(enable);
         }
     }
 
