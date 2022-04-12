@@ -77,7 +77,7 @@ class CameraController : NSObject {
         setUpCaptureSessionInput()
     }
     
-    private func detectFacesOnDevice(in image: VisionImage, original frame: CIImage, width: Int, height: Int) -> CIImage? {
+    private func pixelateFace(in image: VisionImage, original frame: CIImage, width: Int, height: Int) -> CIImage? {
         let options = FaceDetectorOptions()
         options.landmarkMode = .none
         options.contourMode = .none
@@ -100,7 +100,7 @@ class CameraController : NSObject {
         return UIUtilities.pixelateFace(original: frame, face: lastFace!, width: CGFloat(width), height: CGFloat(height))
     }
     
-    private func detectSegmentationMask(in image: VisionImage, original frame: CIImage) -> CIImage? {
+    private func blurBackground(in image: VisionImage, original frame: CIImage) -> CIImage? {
         guard let segmenter = self.segmenter else {
             return nil
         }
@@ -238,14 +238,14 @@ extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
         
         var result = originalImage
         if (pixelateFace) {
-            if let face = detectFacesOnDevice(in: visionImage, original: originalImage, width: imageWidth, height: imageHeight) {
-                result = face
+            if let newImage = pixelateFace(in: visionImage, original: originalImage, width: imageWidth, height: imageHeight) {
+                result = newImage
             }
         }
         
         if (blurBackground) {
-            if let background = detectSegmentationMask(in: visionImage, original: result) {
-                result = background
+            if let newImage = blurBackground(in: visionImage, original: result) {
+                result = newImage
             }
         }
         
