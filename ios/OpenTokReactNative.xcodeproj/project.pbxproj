@@ -334,14 +334,14 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6ZF2U3QJC;
 				FRAMEWORK_SEARCH_PATHS = (
-					"\"${PODS_ROOT}/MLImage/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitCommon/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitFaceDetection/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitSegmentationCommon/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitSegmentationSelfie/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitVision/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitXenoCommon/Frameworks\"",
-					"\"${PODS_ROOT}/OpenTok\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLImage/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitCommon/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitFaceDetection/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitSegmentationCommon/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitSegmentationSelfie/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitVision/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitXenoCommon/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/OpenTok\"",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
@@ -365,14 +365,14 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6ZF2U3QJC;
 				FRAMEWORK_SEARCH_PATHS = (
-					"\"${PODS_ROOT}/MLImage/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitCommon/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitFaceDetection/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitSegmentationCommon/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitSegmentationSelfie/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitVision/Frameworks\"",
-					"\"${PODS_ROOT}/MLKitXenoCommon/Frameworks\"",
-					"\"${PODS_ROOT}/OpenTok\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLImage/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitCommon/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitFaceDetection/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitSegmentationCommon/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitSegmentationSelfie/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitVision/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/MLKitXenoCommon/Frameworks\"",
+					"\"${SRCROOT}/../../../ios/Pods/OpenTok\"",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
