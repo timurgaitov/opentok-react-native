@@ -66,13 +66,11 @@ class CameraController : NSObject {
     
     
     func switchCamera() {
-        lastFace = nil
         isUsingFrontCamera = !isUsingFrontCamera
         setUpCaptureSessionInput()
     }
     
     func swapCamera(to position: AVCaptureDevice.Position) {
-        lastFace = nil
         isUsingFrontCamera = AVCaptureDevice.Position.front == position
         setUpCaptureSessionInput()
     }
@@ -91,13 +89,10 @@ class CameraController : NSObject {
             
         }
         
-        if faces.isEmpty && lastFace == nil {
-            return nil
-        } else if !faces.isEmpty {
-            lastFace = faces.first!
-        }
+        guard let face = faces.first ?? lastFace else { return nil }
         
-        return UIUtilities.pixelateFace(original: frame, face: lastFace!, width: CGFloat(width), height: CGFloat(height))
+        lastFace = face
+        return UIUtilities.pixelateFace(original: frame, face: face, width: CGFloat(width), height: CGFloat(height))
     }
     
     private func blurBackground(in image: VisionImage, original frame: CIImage) -> CIImage? {
@@ -165,10 +160,8 @@ class CameraController : NSObject {
                     return
                 }
                 strongSelf.captureSession.addInput(input)
-                if #available(iOS 13.0, *) {
-                    strongSelf.captureSession.connections.first?.automaticallyAdjustsVideoMirroring = false
-                }
                 strongSelf.captureSession.commitConfiguration()
+                strongSelf.lastFace = nil
             } catch {
             }
         }
