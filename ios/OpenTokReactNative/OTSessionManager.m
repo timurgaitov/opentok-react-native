@@ -85,4 +85,10 @@ RCT_EXTERN_METHOD(getSessionInfo:
                   callback:(RCTResponseSenderBlock*)callback)
 RCT_EXTERN_METHOD(enableLogs:
                   (BOOL)logLevel)
+RCT_EXTERN_METHOD(backgroundBlur:
+                  (NSString*)publisherId
+                  enable:(BOOL)enable)
+RCT_EXTERN_METHOD(pixelatedFace:
+                  (NSString*)publisherId
+                  enable:(BOOL)enable)
 @end
