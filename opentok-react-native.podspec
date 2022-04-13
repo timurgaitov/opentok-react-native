@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
 
   s.authors       = package['author']
   s.homepage      = package['homepage']
-  s.platform      = :ios, "9.0"
+  s.platform      = :ios, "10.0"
   s.swift_version = "4.2"
 
   s.source        = { :git => "https://github.com/opentok/opentok-react-native.git", :tag => "v#{s.version}" }
@@ -18,4 +18,6 @@ Pod::Spec.new do |s|
 
   s.dependency 'React'
   s.dependency 'OpenTok','~> 2.21.3'
+  s.dependency 'GoogleMLKit/FaceDetection', '~> 2.6.0'
+  s.dependency 'GoogleMLKit/SegmentationSelfie', '~> 2.6.0'
 end
