@@ -100,15 +100,12 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     @Override
     public void cycleCamera() {
-
         int current = cameraSource.getCameraFacing();
         int next = current == CameraSource.CAMERA_FACING_FRONT
                 ? CameraSource.CAMERA_FACING_BACK
                 : CameraSource.CAMERA_FACING_FRONT;
 
-        cameraSource.setFacing(next);
-        cameraSource.stop();
-        startCameraSource();
+        swapCamera(next);
     }
 
     @Override
@@ -119,6 +116,9 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     @Override
     public void swapCamera(int i) {
         cameraSource.setFacing(i);
+        cameraSource.stop();
+        videoFiltersProcessor.clearCache();
+        startCameraSource();
     }
 
     @Override

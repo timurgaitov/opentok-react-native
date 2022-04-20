@@ -43,6 +43,10 @@ public class VideoFiltersProcessor extends VisionProcessorBase<List<Task<?>>> {
         videoOverlay = new VideoOverlay();
     }
 
+    public void clearCache() {
+        cachedFaces = new ArrayList<>();
+    }
+
     private void setupFaceDetector() {
         FaceDetectorOptions faceDetectorOptions = new FaceDetectorOptions.Builder().build();
         faceDetector = FaceDetection.getClient(faceDetectorOptions);
