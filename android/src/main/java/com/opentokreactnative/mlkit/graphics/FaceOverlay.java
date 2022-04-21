@@ -76,7 +76,7 @@ public class FaceOverlay {
             bottom = original.getHeight();
         }
 
-        Bitmap facePix = BitmapEffects.pixelate(original, 15, left, top, right, bottom);
+        Bitmap facePix = BitmapEffects.pixelate(original, 8, left, top, right, bottom);
         canvas.drawBitmap(facePix, 0, 0, paint);
     }
 
