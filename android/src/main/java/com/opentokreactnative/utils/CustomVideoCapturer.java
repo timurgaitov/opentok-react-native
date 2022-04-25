@@ -117,7 +117,6 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     public void swapCamera(int i) {
         cameraSource.setFacing(i);
         cameraSource.stop();
-        videoFiltersProcessor.clearCache();
         startCameraSource();
     }
 

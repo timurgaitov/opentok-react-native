@@ -42,7 +42,6 @@ class CameraController : NSObject {
     private var segmenter: Segmenter? = nil
     
     private var capturer: CustomVideoCapturer
-    private var lastFace: Face?
     
     private lazy var captureSession = AVCaptureSession()
     private lazy var sessionQueue = DispatchQueue(label: Constant.sessionQueueLabel)
@@ -80,7 +79,7 @@ class CameraController : NSObject {
         options.landmarkMode = .none
         options.contourMode = .none
         options.classificationMode = .none
-        options.performanceMode = .fast
+        options.performanceMode = .accurate
         let faceDetector = FaceDetector.faceDetector(options: options)
         var faces: [Face] = []
         do {
@@ -89,9 +88,8 @@ class CameraController : NSObject {
             
         }
         
-        guard let face = faces.first ?? lastFace else { return nil }
+        guard let face = faces.first else { return nil }
         
-        lastFace = face
         return UIUtilities.pixelateFace(original: frame, face: face, width: CGFloat(width), height: CGFloat(height))
     }
     
@@ -161,7 +159,6 @@ class CameraController : NSObject {
                 }
                 strongSelf.captureSession.addInput(input)
                 strongSelf.captureSession.commitConfiguration()
-                strongSelf.lastFace = nil
             } catch {
             }
         }

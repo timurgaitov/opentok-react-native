@@ -21,7 +21,6 @@ import com.opentokreactnative.mlkit.graphics.VideoOverlay;
 import com.opentokreactnative.mlkit.processors.base.ProcessorFrameListener;
 import com.opentokreactnative.mlkit.processors.base.VisionProcessorBase;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,7 +28,6 @@ public class VideoFiltersProcessor extends VisionProcessorBase<List<Task<?>>> {
 
     private FaceDetector faceDetector;
     private Segmenter segmenter;
-    private List<Face> cachedFaces = new ArrayList<>();
     public boolean enableBackgroundBlur = false;
     public boolean enablePixelatedFace = false;
     private final ProcessorFrameListener frameListener;
@@ -43,12 +41,10 @@ public class VideoFiltersProcessor extends VisionProcessorBase<List<Task<?>>> {
         videoOverlay = new VideoOverlay();
     }
 
-    public void clearCache() {
-        cachedFaces = new ArrayList<>();
-    }
-
     private void setupFaceDetector() {
-        FaceDetectorOptions faceDetectorOptions = new FaceDetectorOptions.Builder().build();
+        FaceDetectorOptions faceDetectorOptions = new FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                .build();
         faceDetector = FaceDetection.getClient(faceDetectorOptions);
     }
 
@@ -106,11 +102,7 @@ public class VideoFiltersProcessor extends VisionProcessorBase<List<Task<?>>> {
         List<?> resultList = (List<?>) taskResult;
         if (!resultList.isEmpty() && resultList.get(0) instanceof Face) {
             List<Face> faces = (List<Face>) resultList;
-            cachedFaces = faces;
             return faces.get(0);
-        } else if (!cachedFaces.isEmpty()) {
-            // if we lose tracking of the face, we use previous positions.
-            return cachedFaces.get(0);
         }
 
         return null;
