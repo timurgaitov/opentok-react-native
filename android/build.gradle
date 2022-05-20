@@ -29,4 +29,9 @@ dependencies {
     implementation "com.facebook.react:react-native:${_reactNativeVersion}"  // From node_modules
     implementation 'com.opentok.android:opentok-android-sdk:2.21.2'
     implementation 'com.github.gab07:AndroidUSBCamera:2.3.8'
+
+    implementation 'com.google.mlkit:segmentation-selfie:16.0.0-beta4'
+    implementation 'com.google.mlkit:face-detection:16.1.5'
+
+    implementation 'com.github.android:renderscript-intrinsics-replacement-toolkit:598692ab79'
 }
