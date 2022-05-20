@@ -47,17 +47,31 @@ public class UIUtilities {
     }
     
     public static func pixelateFace(original originalImage: CIImage,
-                                    face: Face, width: CGFloat, height: CGFloat) -> CIImage? {
-        let radius = face.frame.size.height / 1.6
-        let filterParams = [
-            "inputRadius0": radius,
-            "inputRadius1": radius + 1.0,
-            "inputColor0": CIColor(red:0.0, green:1.0, blue:0.0, alpha:1.0),
-            "inputColor1": CIColor(red:0.0, green:0.0, blue:0.0, alpha:0.0),
-            kCIInputCenterKey: CIVector(x: face.frame.midX, y: height - face.frame.midY),
-        ] as [String : Any]
-        
-        guard let maskImage = CIFilter(name: "CIRadialGradient", parameters: filterParams)?.outputImage else {
+                                    faces: [Face], width: CGFloat, height: CGFloat) -> CIImage? {
+        var maskImage: CIImage?
+        for face in faces {
+            let radius = face.frame.size.height / 1.6
+            let filterParams = [
+                "inputRadius0": radius,
+                "inputRadius1": radius + 1.0,
+                "inputColor0": CIColor(red:0.0, green:1.0, blue:0.0, alpha:1.0),
+                "inputColor1": CIColor(red:0.0, green:0.0, blue:0.0, alpha:0.0),
+                kCIInputCenterKey: CIVector(x: face.frame.midX, y: height - face.frame.midY),
+            ] as [String : Any]
+            
+            let circle = CIFilter(name: "CIRadialGradient", parameters: filterParams)!.outputImage
+            
+            if maskImage == nil {
+                maskImage = circle
+            } else {
+                let filter = CIFilter(name: "CISourceOverCompositing")!
+                filter.setValue(circle, forKey: kCIInputImageKey)
+                filter.setValue(maskImage, forKey: kCIInputBackgroundImageKey)
+                maskImage = filter.outputImage
+            }
+        }
+     
+        guard let maskImage = maskImage else {
             return nil
         }
         

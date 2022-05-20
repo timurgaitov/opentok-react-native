@@ -88,9 +88,11 @@ class CameraController : NSObject {
             
         }
         
-        guard let face = faces.first else { return nil }
+        if faces.isEmpty {
+            return nil
+        }
         
-        return UIUtilities.pixelateFace(original: frame, face: face, width: CGFloat(width), height: CGFloat(height))
+        return UIUtilities.pixelateFace(original: frame, faces: faces, width: CGFloat(width), height: CGFloat(height))
     }
     
     private func blurBackground(in image: VisionImage, original frame: CIImage) -> CIImage? {
