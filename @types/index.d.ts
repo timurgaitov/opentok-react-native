@@ -91,6 +91,8 @@ declare module "opentok-react-native" {
      * Event handlers passed into the native session instance.
      */
     eventHandlers?: OTSessionEventHandlers;
+
+    createSession?: any;
   }
 
   interface OTSessionSessionOptions {
