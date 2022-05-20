@@ -1,13 +1,20 @@
 package com.opentokreactnative.utils;
 
+import android.annotation.SuppressLint;
 import android.hardware.usb.UsbDevice;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.opentok.android.BaseVideoCapturer;
 import com.opentok.android.Publisher;
+import com.opentokreactnative.mlkit.camera.AndroidCameraCapturer;
+import com.opentokreactnative.mlkit.processors.FrameProcessingRunnable;
+import com.opentokreactnative.mlkit.processors.VideoFiltersProcessor;
+import com.opentokreactnative.mlkit.processors.base.ProcessorFrameListener;
 import com.serenegiant.usb.USBMonitor;
 
-public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoCapturer.CaptureSwitch {
+import java.nio.ByteBuffer;
+
+public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoCapturer.CaptureSwitch, ProcessorFrameListener {
     private final static CameraType fallbackCameraType = CameraType.AndroidBack;
     private final static int fallbackCameraIndex = CameraIndex.Back;
 
@@ -18,22 +25,28 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     private final USBMonitor usbMonitor;
     private final UvcVideoCapturer uvcVideoCapturer;
-    private final AndroidVideoCapturer androidVideoCapturer;
 
-    private UsbDevice mDevice;
-    private USBMonitor.UsbControlBlock mCtrlBlock;
+    private final VideoFiltersProcessor videoFiltersProcessor;
+    private AndroidCameraCapturer androidCameraCapturer;
+
+    private UsbDevice device;
+    private USBMonitor.UsbControlBlock ctrlBlock;
 
     private CameraEvents cameraEventsListener;
     private boolean permissionRequested = false;
 
     public CustomVideoCapturer(ReactApplicationContext context, Publisher.CameraCaptureResolution resolution, Publisher.CameraCaptureFrameRate fps) {
-        uvcVideoCapturer = new UvcVideoCapturer(context, this);
-        androidVideoCapturer = new AndroidVideoCapturer(context, resolution, fps, this);
         usbMonitor = new USBMonitor(context, deviceConnectListener);
-    }
 
-    public interface CameraEvents {
-        void positionChanged(String position);
+        videoFiltersProcessor = new VideoFiltersProcessor(context, this);
+
+        FrameProcessingRunnable androidRunnable = new FrameProcessingRunnable(videoFiltersProcessor);
+        androidCameraCapturer = new AndroidCameraCapturer(context.getCurrentActivity(), androidRunnable);
+        androidCameraCapturer.setFacing(AndroidCameraCapturer.CAMERA_FACING_BACK);
+        androidCameraCapturer.setFrameListener(this);
+
+        FrameProcessingRunnable usbRunnable = new FrameProcessingRunnable(videoFiltersProcessor);
+        uvcVideoCapturer = new UvcVideoCapturer(context, this, usbRunnable);
     }
 
     public synchronized void init() {
@@ -46,7 +59,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             return -1;
         }
 
-        int res = cameraType == CameraType.External ? uvcVideoCapturer.startCapture() : androidVideoCapturer.startCapture(cameraType);
+        int res = cameraType == CameraType.External ? uvcVideoCapturer.startCapture() : startCameraSource();
         if (res == 0) {
             isCaptureRunning = true;
             isCaptureStarted = true;
@@ -66,12 +79,15 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             return uvcVideoCapturer.releaseCamera();
         } else {
             uvcVideoCapturer.releaseCamera();
-            return androidVideoCapturer.stopCapture();
+            androidCameraCapturer.stop();
+            return 0;
         }
     }
 
     @Override
     public void destroy() {
+        videoFiltersProcessor.stop();
+        androidCameraCapturer.stop();
         uvcVideoCapturer.destroy();
         if (usbMonitor != null) {
             usbMonitor.unregister();
@@ -86,7 +102,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     @Override
     public CaptureSettings getCaptureSettings() {
-        return cameraType == CameraType.External ? uvcVideoCapturer.getCaptureSettings() : androidVideoCapturer.getCaptureSettings();
+        return cameraType == CameraType.External ? uvcVideoCapturer.getCaptureSettings() : androidCameraCapturer.getCaptureSettings();
     }
 
     @Override
@@ -124,6 +140,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         throw new IllegalStateException();
     }
 
+    @Override
     public synchronized void swapCamera(int index) {
         CameraType swapToCameraType;
 
@@ -149,20 +166,73 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             onPositionChanged("back");
             return;
         }
-
         if (cameraType == CameraType.AndroidFront && swapToCameraType == CameraType.AndroidBack
                 || cameraType == CameraType.AndroidBack && swapToCameraType == CameraType.AndroidFront) {
-            androidVideoCapturer.swapCamera(swapToCameraType, this.isCaptureStarted);
+            androidCameraCapturer.setFacing(swapToCameraType);
+            if (this.isCaptureStarted) {
+                androidCameraCapturer.stop();
+                startCameraSource();
+            }
         } else if (swapToCameraType == CameraType.External) {
-            androidVideoCapturer.stopCapture();
+            androidCameraCapturer.stop();
             final boolean doesNotMatter = false;
-            uvcVideoCapturer.openCamera(mCtrlBlock, doesNotMatter);
+            uvcVideoCapturer.openCamera(ctrlBlock, doesNotMatter);
         } else {
             uvcVideoCapturer.stopCapture();
-            androidVideoCapturer.startCapture(swapToCameraType);
+            androidCameraCapturer.stop();
+            androidCameraCapturer.setFacing(swapToCameraType);
+            startCameraSource();
         }
 
         cameraType = swapToCameraType;
+    }
+
+    @Override
+    public void onFrame(ByteBuffer buffer, int width, int height, int rotation) {
+        provideBufferFrame(
+                buffer,
+                NV21,
+                width,
+                height,
+                rotation,
+                getCameraIndex() == AndroidCameraCapturer.CAMERA_FACING_FRONT
+        );
+    }
+
+    @Override
+    public void onFrame(byte[] frame, int width, int height, int rotation) {
+        provideByteArrayFrame(
+                frame,
+                NV21,
+                width,
+                height,
+                rotation,
+                getCameraIndex() == AndroidCameraCapturer.CAMERA_FACING_FRONT
+        );
+    }
+
+    @Override
+    public void onFrame(int[] frame, int width, int height, int rotation) {
+        provideIntArrayFrame(
+                frame,
+                ARGB,
+                width,
+                height,
+                0,
+                getCameraIndex() == AndroidCameraCapturer.CAMERA_FACING_FRONT
+        );
+    }
+
+    public void enableBackgroundBlur(boolean enable) {
+        boolean lastState = videoFiltersProcessor.active();
+        videoFiltersProcessor.enableBackgroundBlur = enable;
+        checkProcessorState(lastState);
+    }
+
+    public void enablePixelatedFace(boolean enable) {
+        boolean lastState = videoFiltersProcessor.active();
+        videoFiltersProcessor.enablePixelatedFace = enable;
+        checkProcessorState(lastState);
     }
 
     public void setCameraEventsListener(CameraEvents listener) {
@@ -174,7 +244,30 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     }
 
     public boolean isUsbCameraReady() {
-        return mDevice != null && mCtrlBlock != null && hasPermission(mDevice);
+        return device != null && ctrlBlock != null && hasPermission(device);
+    }
+
+    private void checkProcessorState(boolean lastState) {
+        boolean currentState = videoFiltersProcessor.active();
+        if (lastState != currentState) {
+            androidCameraCapturer.onFrameProcessorEnabled(currentState);
+            uvcVideoCapturer.onFrameProcessorEnabled(currentState, ctrlBlock);
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private int startCameraSource() {
+        if (androidCameraCapturer != null) {
+            try {
+                androidCameraCapturer.stop();
+                androidCameraCapturer.start();
+                return 0;
+            } catch (Exception e) {
+                androidCameraCapturer.release();
+                androidCameraCapturer = null;
+            }
+        }
+        return -1;
     }
 
     private boolean hasPermission(UsbDevice device) {
@@ -215,8 +308,8 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
         @Override
         public void onConnect(final UsbDevice device, final USBMonitor.UsbControlBlock ctrlBlock, final boolean createNew) {
-            mDevice = device;
-            mCtrlBlock = ctrlBlock;
+            CustomVideoCapturer.this.device = device;
+            CustomVideoCapturer.this.ctrlBlock = ctrlBlock;
 
             onPositionChanged("external");
         }
@@ -227,8 +320,8 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
         @Override
         public void onDettach(final UsbDevice device) {
-            mDevice = null;
-            mCtrlBlock = null;
+            CustomVideoCapturer.this.device = null;
+            ctrlBlock = null;
 
             permissionRequested = false;
             uvcVideoCapturer.closeCamera();
@@ -242,4 +335,8 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         public void onCancel(final UsbDevice device) {
         }
     };
+
+    public interface CameraEvents {
+        void positionChanged(String position);
+    }
 }
