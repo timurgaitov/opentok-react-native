@@ -6,6 +6,8 @@ import android.graphics.Canvas;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.segmentation.SegmentationMask;
 
+import java.util.List;
+
 public class VideoOverlay {
     private Canvas canvas;
     private Bitmap outputBitmap;
@@ -24,9 +26,9 @@ public class VideoOverlay {
         currentBitmap = bitmap;
     }
 
-    public void setFace(Face face) {
-        if (face != null) {
-            faceOverlay = new FaceOverlay(face, currentBitmap);
+    public void setFaces(List<Face> faces) {
+        if (faces != null) {
+            faceOverlay = new FaceOverlay(faces, currentBitmap);
         } else {
             faceOverlay = null;
         }
@@ -89,6 +91,5 @@ public class VideoOverlay {
             frame = new int[width * height];
         }
     }
-
 
 }

@@ -11,13 +11,14 @@ import android.graphics.Rect;
 import com.google.mlkit.vision.face.Face;
 import com.opentokreactnative.mlkit.utils.BitmapEffects;
 
+import java.util.List;
 
 public class FaceOverlay {
-    private volatile Face face;
+    private volatile List<Face> faces;
     private final Bitmap originalBitmap;
 
-    public FaceOverlay(Face face, Bitmap original) {
-        this.face = face;
+    public FaceOverlay(List<Face> faces, Bitmap original) {
+        this.faces = faces;
         this.originalBitmap = original;
     }
 
@@ -32,10 +33,19 @@ public class FaceOverlay {
         paint.setAntiAlias(true);
         paint.setStyle(Paint.Style.FILL);
 
-        drawHeadPlaceholderCircle(face, tempCanvas, paint);
+        for (int i = 0; i < faces.size(); i++) {
+            Face face = faces.get(i);
+            drawHeadPlaceholderCircle(face, tempCanvas, paint);
+        }
+
+        Bitmap originalWithPixFaces = originalBitmap;
+        for (int i = 0; i < faces.size(); i++) {
+            Face face = faces.get(i);
+            originalWithPixFaces = pixelateFace(originalWithPixFaces, face);
+        }
 
         paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
-        drawPixelatedFace(originalBitmap, tempCanvas, paint, face);
+        tempCanvas.drawBitmap(originalWithPixFaces, 0, 0, paint);
 
         canvas.drawBitmap(output, 0, 0, null);
     }
@@ -49,7 +59,7 @@ public class FaceOverlay {
         canvas.drawCircle(x, y, radius, paint);
     }
 
-    private void drawPixelatedFace(Bitmap original, Canvas canvas, Paint paint, Face face) {
+    private Bitmap pixelateFace(Bitmap original, Face face) {
         Rect boundingBox = face.getBoundingBox();
         int halfWidth = boundingBox.width() / 2;
         int halfHeight = boundingBox.height() / 2;
@@ -76,8 +86,7 @@ public class FaceOverlay {
             bottom = original.getHeight();
         }
 
-        Bitmap facePix = BitmapEffects.pixelate(original, 8, left, top, right, bottom);
-        canvas.drawBitmap(facePix, 0, 0, paint);
+        return BitmapEffects.pixelate(original, 8, left, top, right, bottom);
     }
 
 }

@@ -79,18 +79,18 @@ public class VideoFiltersProcessor extends VisionProcessorBase<List<Task<?>>> {
             @Nullable Bitmap originalCameraImage
     ) {
         SegmentationMask mask = null;
-        Face face = null;
+        List<Face> faces = null;
         for (Task<?> task : results) {
             Object taskResult = task.getResult();
             if (taskResult instanceof SegmentationMask && enableBackgroundBlur) {
                 mask = ((SegmentationMask) taskResult);
             } else if (taskResult instanceof List<?> && enablePixelatedFace) {
-                face = getFace((List<?>) taskResult);
+                faces = getFaces((List<?>) taskResult);
             }
         }
 
         videoOverlay.setBitmap(originalCameraImage);
-        videoOverlay.setFace(face);
+        videoOverlay.setFaces(faces);
         videoOverlay.setSegmentationMask(mask);
         int[] frame = videoOverlay.getFrame();
         if (frame != null && frameListener != null) {
@@ -98,11 +98,11 @@ public class VideoFiltersProcessor extends VisionProcessorBase<List<Task<?>>> {
         }
     }
 
-    private Face getFace(List<?> taskResult) {
+    private List<Face> getFaces(List<?> taskResult) {
         List<?> resultList = (List<?>) taskResult;
         if (!resultList.isEmpty() && resultList.get(0) instanceof Face) {
             List<Face> faces = (List<Face>) resultList;
-            return faces.get(0);
+            return faces;
         }
 
         return null;
