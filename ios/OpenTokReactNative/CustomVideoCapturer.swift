@@ -12,9 +12,14 @@ class CustomVideoCapturer: NSObject, OTVideoCapture {
     private var cameraController: CameraController?
     private var frame: OTVideoFrame?
     
-    func initCapture() {
+    override init() {
+        super.init()
         cameraController = CameraController(capturer: self)
         cameraController?.setup()
+    }
+    
+    func initCapture() {
+
     }
     
     func releaseCapture() {
