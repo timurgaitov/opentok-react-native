@@ -86,7 +86,7 @@ public class FaceOverlay {
             bottom = original.getHeight();
         }
 
-        return BitmapEffects.pixelate(original, 8, left, top, right, bottom);
+        return BitmapEffects.pixelate(original, 15, left, top, right, bottom);
     }
 
 }
