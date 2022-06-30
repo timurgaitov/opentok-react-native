@@ -233,10 +233,6 @@ declare module "opentok-react-native" {
     swap?: boolean;
 
     fitToView?: string;
-
-    backgroundBlur?: boolean;
-
-    pixelatedFace?: boolean;
     
   }
 
@@ -301,6 +297,17 @@ declare module "opentok-react-native" {
      * To publish a screen-sharing stream, set this property to "screen". If you do not specify a value, this will default to "camera".
      */
     videoSource?: VideoSource;
+
+    /**
+     * Whether to blur background.
+     */
+    backgroundBlur?: boolean;
+
+    /**
+     * Whether to obscure faces on video.
+     */
+    pixelatedFace?: boolean;
+
   }
 
   interface OTPublisherEventHandlers {
