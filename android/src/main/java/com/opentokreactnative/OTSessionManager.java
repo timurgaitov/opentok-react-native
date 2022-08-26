@@ -149,6 +149,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         String cameraPosition = properties.getString("cameraPosition");
         Boolean audioFallbackEnabled = properties.getBoolean("audioFallbackEnabled");
         int audioBitrate = properties.getInt("audioBitrate");
+        Boolean enableDtx = properties.getBoolean("enableDtx");
         String frameRate = "FPS_" + properties.getInt("frameRate");
         String resolution = properties.getString("resolution");
         Boolean publishAudio = properties.getBoolean("publishAudio");
@@ -166,6 +167,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .videoTrack(videoTrack)
                     .name(name)
                     .audioBitrate(audioBitrate)
+                    .enableOpusDtx(enableDtx)
                     .resolution(Publisher.CameraCaptureResolution.valueOf(resolution))
                     .frameRate(Publisher.CameraCaptureFrameRate.valueOf(frameRate))
                     .capturer(capturer)
@@ -405,8 +407,35 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     }
 
     @ReactMethod
-    public void setNativeEvents(ReadableArray events) {
+    public void changeVideoContentHint(String publisherId, String videoContentHint) {
 
+        ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
+        Publisher mPublisher = mPublishers.get(publisherId);
+        if (mPublisher != null && mPublisher.getCapturer() != null) {
+            mPublisher.getCapturer().setVideoContentHint(Utils.convertVideoContentHint(videoContentHint));
+        }
+    }
+
+    @ReactMethod
+    public void backgroundBlur(String publisherId, boolean enable) {
+        ConcurrentHashMap<String, Publisher> publishers = sharedState.getPublishers();
+        Publisher publisher = publishers.get(publisherId);
+        if (publisher != null && publisher.getCapturer() != null && publisher.getCapturer() instanceof CustomVideoCapturer) {
+            ((CustomVideoCapturer) publisher.getCapturer()).enableBackgroundBlur(enable);
+        }
+    }
+
+    @ReactMethod
+    public void pixelatedFace(String publisherId, boolean enable) {
+        ConcurrentHashMap<String, Publisher> publishers = sharedState.getPublishers();
+        Publisher publisher = publishers.get(publisherId);
+        if (publisher != null && publisher.getCapturer() != null && publisher.getCapturer() instanceof CustomVideoCapturer) {
+            ((CustomVideoCapturer) publisher.getCapturer()).enablePixelatedFace(enable);
+        }
+    }
+
+    @ReactMethod
+    public void setNativeEvents(ReadableArray events) {
         for (int i = 0; i < events.size(); i++) {
             jsEvents.add(events.getString(i));
         }

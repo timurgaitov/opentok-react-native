@@ -80,6 +80,7 @@ class OTSessionManager: RCTEventEmitter {
             }
             publisherProperties.cameraFrameRate = Utils.sanitizeFrameRate(properties["frameRate"] as Any);
             publisherProperties.cameraResolution = Utils.sanitizeCameraResolution(properties["resolution"] as Any);
+            publisherProperties.enableOpusDtx = Utils.sanitizeBooleanProperty(properties["enableDtx"] as Any);
             publisherProperties.name = properties["name"] as? String;
             publisherProperties.videoCapture?.videoContentHint = Utils.convertVideoContentHint(properties["videoContentHint"] as Any)
             OTRN.sharedState.publishers.updateValue(OTPublisher(delegate: self, settings: publisherProperties)!, forKey: publisherId);
@@ -265,6 +266,11 @@ class OTSessionManager: RCTEventEmitter {
         if capturer.isKind(of: CustomVideoCapturer.self) {
             (capturer as! CustomVideoCapturer).enablePixelatedFace(enabled: enable)
         }
+    }
+    
+    @objc func changeVideoContentHint(_ publisherId: String, videoContentHint: String) -> Void {
+        guard let publisher = OTRN.sharedState.publishers[publisherId] else { return }
+        publisher.videoCapture?.videoContentHint = Utils.convertVideoContentHint(videoContentHint);
     }
     
     @objc func setNativeEvents(_ events: Array<String>) -> Void {
