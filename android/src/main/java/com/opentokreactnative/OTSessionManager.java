@@ -407,34 +407,6 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     }
 
     @ReactMethod
-    public void changeVideoContentHint(String publisherId, String videoContentHint) {
-
-        ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
-        Publisher mPublisher = mPublishers.get(publisherId);
-        if (mPublisher != null && mPublisher.getCapturer() != null) {
-            mPublisher.getCapturer().setVideoContentHint(Utils.convertVideoContentHint(videoContentHint));
-        }
-    }
-
-    @ReactMethod
-    public void backgroundBlur(String publisherId, boolean enable) {
-        ConcurrentHashMap<String, Publisher> publishers = sharedState.getPublishers();
-        Publisher publisher = publishers.get(publisherId);
-        if (publisher != null && publisher.getCapturer() != null && publisher.getCapturer() instanceof CustomVideoCapturer) {
-            ((CustomVideoCapturer) publisher.getCapturer()).enableBackgroundBlur(enable);
-        }
-    }
-
-    @ReactMethod
-    public void pixelatedFace(String publisherId, boolean enable) {
-        ConcurrentHashMap<String, Publisher> publishers = sharedState.getPublishers();
-        Publisher publisher = publishers.get(publisherId);
-        if (publisher != null && publisher.getCapturer() != null && publisher.getCapturer() instanceof CustomVideoCapturer) {
-            ((CustomVideoCapturer) publisher.getCapturer()).enablePixelatedFace(enable);
-        }
-    }
-
-    @ReactMethod
     public void setNativeEvents(ReadableArray events) {
         for (int i = 0; i < events.size(); i++) {
             jsEvents.add(events.getString(i));
