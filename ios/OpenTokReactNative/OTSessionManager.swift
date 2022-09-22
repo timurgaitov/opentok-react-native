@@ -268,11 +268,6 @@ class OTSessionManager: RCTEventEmitter {
         }
     }
     
-    @objc func changeVideoContentHint(_ publisherId: String, videoContentHint: String) -> Void {
-        guard let publisher = OTRN.sharedState.publishers[publisherId] else { return }
-        publisher.videoCapture?.videoContentHint = Utils.convertVideoContentHint(videoContentHint);
-    }
-    
     @objc func setNativeEvents(_ events: Array<String>) -> Void {
         for event in events {
             if (!self.jsEvents.contains(event)) {
