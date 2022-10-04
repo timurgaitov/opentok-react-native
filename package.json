@@ -1,6 +1,6 @@
 {
   "name": "opentok-react-native",
-  "version": "0.20.1",
+  "version": "0.21.0",
   "description": "React Native components for OpenTok iOS and Android SDKs",
   "main": "src/index.js",
   "homepage": "https://www.tokbox.com",
@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
+    "deprecated-react-native-prop-types": "^2.3.0",
     "prop-types": "^15.7.2",
     "underscore": "^1.13.0",
     "uuid": "^3.4.0"
