@@ -377,6 +377,8 @@ declare module "opentok-react-native" {
      * If set to true, the subscriber can subscribe to it's own publisher stream (default: false)
      */
     subscribeToSelf?: boolean;
+
+    children?: CallbackWithParam<string[], void>; 
   }
 
   interface OTSubscriberProperties {

@@ -598,7 +598,6 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         ConcurrentHashMap<String, Boolean> destroyedStreams = sharedState.getPublisherDestroyedStreams();
         boolean streamWasDestroyed = destroyedStreams.containsKey(streamId);
         if (streamWasDestroyed) {
-            destroyedStreams.remove(streamId);
             return;
         }
         ConcurrentHashMap<String, Stream> mSubscriberStreams = sharedState.getSubscriberStreams();
