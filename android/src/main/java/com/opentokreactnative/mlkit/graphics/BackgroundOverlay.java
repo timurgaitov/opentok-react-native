@@ -54,7 +54,7 @@ public class BackgroundOverlay {
 
         tempCanvas.drawBitmap(scaledOriginal, 0, 0, paint);
 
-        Bitmap blurredBackgroundBitmap = BitmapEffects.blur(output, 10);
+        Bitmap blurredBackgroundBitmap = BitmapEffects.blur(output, 5);
         Bitmap result = Bitmap.createScaledBitmap(blurredBackgroundBitmap, originalImage.getWidth(), originalImage.getHeight(), true);
 
         canvas.drawBitmap(result, 0, 0, null);
@@ -65,8 +65,12 @@ public class BackgroundOverlay {
         @ColorInt int[] colors = new int[maskWidth * maskHeight];
         for (int i = 0; i < maskWidth * maskHeight; i++) {
             // ByteBuffer.getFloat() moves to the next pixel after each call.
-            if (byteBuffer.getFloat() < 0.94) {
+            float backgroundLikelihood = byteBuffer.getFloat();
+            if (backgroundLikelihood < 0.90) {
                 colors[i] = Color.BLACK;
+            } else if (backgroundLikelihood < 0.94){
+                int alpha = (int) (182.9 * (1 - backgroundLikelihood) - 36.6 + 0.5);
+                colors[i] = Color.argb(alpha, 255, 0, 255);
             }
         }
         return colors;
