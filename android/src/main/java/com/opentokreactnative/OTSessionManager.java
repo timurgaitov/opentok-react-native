@@ -157,6 +157,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         Boolean publishAudio = properties.getBoolean("publishAudio");
         Boolean publishVideo = properties.getBoolean("publishVideo");
         String videoSource = properties.getString("videoSource");
+        boolean blurBackground = properties.getBoolean("backgroundBlur");
+        boolean pixelatedFace = properties.getBoolean("pixelatedFace");
+
         Publisher mPublisher = null;
         if (videoSource.equals("screen")) {
             View view = getCurrentActivity().getWindow().getDecorView().getRootView();
@@ -175,6 +178,8 @@ public class OTSessionManager extends ReactContextBaseJavaModule
 
             CustomVideoCapturer capturer = new CustomVideoCapturer(this.getReactApplicationContext(), Publisher.CameraCaptureResolution.HIGH, Publisher.CameraCaptureFrameRate.FPS_30);
             capturer.setCameraEventsListener(position -> sendCameraPositionChanged(position));
+            capturer.enableBackgroundBlur(blurBackground);
+            capturer.enablePixelatedFace(pixelatedFace);
 
             mPublisher = new Publisher.Builder(this.getReactApplicationContext())
                     .audioTrack(audioTrack)
@@ -401,6 +406,24 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         Publisher mPublisher = sharedState.getPublisher(publisherId);
         if (mPublisher != null) {
             this.cycleToCameraType(mPublisher, cameraPosition);
+        }
+    }
+
+    @ReactMethod
+    public void backgroundBlur(String publisherId, boolean enable) {
+        ConcurrentHashMap<String, Publisher> publishers = sharedState.getPublishers();
+        Publisher publisher = publishers.get(publisherId);
+        if (publisher != null && publisher.getCapturer() != null && publisher.getCapturer() instanceof CustomVideoCapturer) {
+            ((CustomVideoCapturer) publisher.getCapturer()).enableBackgroundBlur(enable);
+        }
+    }
+
+    @ReactMethod
+    public void pixelatedFace(String publisherId, boolean enable) {
+        ConcurrentHashMap<String, Publisher> publishers = sharedState.getPublishers();
+        Publisher publisher = publishers.get(publisherId);
+        if (publisher != null && publisher.getCapturer() != null && publisher.getCapturer() instanceof CustomVideoCapturer) {
+            ((CustomVideoCapturer) publisher.getCapturer()).enablePixelatedFace(enable);
         }
     }
 
