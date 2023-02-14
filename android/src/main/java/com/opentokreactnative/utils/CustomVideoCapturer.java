@@ -59,7 +59,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             return -1;
         }
 
-        int res = cameraType == CameraType.External ? uvcVideoCapturer.startCapture() : startCameraSource();
+        int res = usingExternalCamera() ? uvcVideoCapturer.startCapture() : startCameraSource();
         if (res == 0) {
             isCaptureRunning = true;
             isCaptureStarted = true;
@@ -75,7 +75,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             usbMonitor.unregister();
             usbMonitor.destroy();
         }
-        if (cameraType == CameraType.External) {
+        if (usingExternalCamera()) {
             return uvcVideoCapturer.releaseCamera();
         } else {
             uvcVideoCapturer.releaseCamera();
@@ -102,7 +102,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
 
     @Override
     public CaptureSettings getCaptureSettings() {
-        return cameraType == CameraType.External ? uvcVideoCapturer.getCaptureSettings() : androidCameraCapturer.getCaptureSettings();
+        return usingExternalCamera() ? uvcVideoCapturer.getCaptureSettings() : androidCameraCapturer.getCaptureSettings();
     }
 
     @Override
@@ -246,10 +246,17 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         return device != null && ctrlBlock != null && hasPermission(device);
     }
 
+    public boolean usingExternalCamera() {
+        return cameraType == CameraType.External;
+    }
+
     private void checkProcessorState() {
         boolean currentState = videoFiltersProcessor.active();
-        androidCameraCapturer.onFrameProcessorEnabled(currentState);
-        uvcVideoCapturer.onFrameProcessorEnabled(currentState, ctrlBlock);
+        if (usingExternalCamera()) {
+            uvcVideoCapturer.onFrameProcessorEnabled(currentState, ctrlBlock);
+        } else {
+            androidCameraCapturer.onFrameProcessorEnabled(currentState);
+        }
     }
 
     @SuppressLint("MissingPermission")
