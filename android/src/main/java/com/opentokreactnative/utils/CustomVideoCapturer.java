@@ -185,6 +185,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         }
 
         cameraType = swapToCameraType;
+        checkProcessorState();
     }
 
     @Override
@@ -224,15 +225,13 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
     }
 
     public void enableBackgroundBlur(boolean enable) {
-        boolean lastState = videoFiltersProcessor.active();
         videoFiltersProcessor.enableBackgroundBlur = enable;
-        checkProcessorState(lastState);
+        checkProcessorState();
     }
 
     public void enablePixelatedFace(boolean enable) {
-        boolean lastState = videoFiltersProcessor.active();
         videoFiltersProcessor.enablePixelatedFace = enable;
-        checkProcessorState(lastState);
+        checkProcessorState();
     }
 
     public void setCameraEventsListener(CameraEvents listener) {
@@ -247,12 +246,10 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         return device != null && ctrlBlock != null && hasPermission(device);
     }
 
-    private void checkProcessorState(boolean lastState) {
+    private void checkProcessorState() {
         boolean currentState = videoFiltersProcessor.active();
-        if (lastState != currentState) {
-            androidCameraCapturer.onFrameProcessorEnabled(currentState);
-            uvcVideoCapturer.onFrameProcessorEnabled(currentState, ctrlBlock);
-        }
+        androidCameraCapturer.onFrameProcessorEnabled(currentState);
+        uvcVideoCapturer.onFrameProcessorEnabled(currentState, ctrlBlock);
     }
 
     @SuppressLint("MissingPermission")
