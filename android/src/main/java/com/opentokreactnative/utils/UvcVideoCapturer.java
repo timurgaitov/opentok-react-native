@@ -160,12 +160,14 @@ public class UvcVideoCapturer {
     }
 
     public void onFrameProcessorEnabled(boolean enabled, final USBMonitor.UsbControlBlock ctrlBlock) {
-        isFrameProcessorActive = enabled;
-        if (cameraHandler != null) {
-            releaseCamera();
-            previewWidth = enabled ? LOW_WIDTH : HIGH_WIDTH;
-            previewHeight = enabled ? LOW_HEIGHT : HIGH_HEIGHT;
-            openCamera(ctrlBlock, false);
+        if (isFrameProcessorActive != enabled) {
+            isFrameProcessorActive = enabled;
+            if (cameraHandler != null) {
+                releaseCamera();
+                previewWidth = enabled ? LOW_WIDTH : HIGH_WIDTH;
+                previewHeight = enabled ? LOW_HEIGHT : HIGH_HEIGHT;
+                openCamera(ctrlBlock, false);
+            }
         }
     }
 
