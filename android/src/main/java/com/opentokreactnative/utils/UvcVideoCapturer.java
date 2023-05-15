@@ -19,6 +19,10 @@ import com.serenegiant.usb.widget.UVCCameraTextureView;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import jdk.internal.org.jline.utils.Log;
 
 public class UvcVideoCapturer {
     private static final String TAG = "UvcVideoCapturer";
@@ -45,6 +49,7 @@ public class UvcVideoCapturer {
     private final ProcessorFrameListener frameListener;
 
     private Thread processingThread;
+    private Timer cameraResetTimer;
 
     private final FrameProcessingRunnable processingRunnable;
 
@@ -160,17 +165,28 @@ public class UvcVideoCapturer {
     }
 
     public void onFrameProcessorEnabled(boolean enabled, final USBMonitor.UsbControlBlock ctrlBlock) {
+        if (cameraResetTimer != null) {
+            cameraResetTimer.cancel();
+        }
+
         if (isFrameProcessorActive != enabled) {
-            isFrameProcessorActive = enabled;
             if (cameraHandler != null) {
-                releaseCamera();
-                previewWidth = enabled ? LOW_WIDTH : HIGH_WIDTH;
-                previewHeight = enabled ? LOW_HEIGHT : HIGH_HEIGHT;
-                openCamera(ctrlBlock, false);
+                cameraResetTimer = new Timer();
+                cameraResetTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        isFrameProcessorActive = enabled;
+                        releaseCamera();
+                        previewWidth = enabled ? LOW_WIDTH : HIGH_WIDTH;
+                        previewHeight = enabled ? LOW_HEIGHT : HIGH_HEIGHT;
+                        openCamera(ctrlBlock, false);
+                    }
+                }, 1000);
+            } else {
+                isFrameProcessorActive = enabled;
             }
         }
     }
-
     private final AbstractUVCCameraHandler.OnFrameListener frameCallback = new AbstractUVCCameraHandler.OnFrameListener() {
 
         @Override
