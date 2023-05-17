@@ -86,6 +86,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
         settings.height = height;
         settings.format = currentVideFormat();
         settings.expectedDelay = 0;
+        settings.mirrorInLocalRender = getCameraIndex() == CameraSource.CAMERA_FACING_FRONT;
 
         return settings;
     }
