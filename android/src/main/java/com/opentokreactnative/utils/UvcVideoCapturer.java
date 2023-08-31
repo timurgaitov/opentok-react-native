@@ -22,8 +22,6 @@ import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import jdk.internal.org.jline.utils.Log;
-
 public class UvcVideoCapturer {
     private static final String TAG = "UvcVideoCapturer";
 
@@ -181,7 +179,7 @@ public class UvcVideoCapturer {
                         previewHeight = enabled ? LOW_HEIGHT : HIGH_HEIGHT;
                         openCamera(ctrlBlock, false);
                     }
-                }, 1000);
+                }, 500);
             } else {
                 isFrameProcessorActive = enabled;
             }
