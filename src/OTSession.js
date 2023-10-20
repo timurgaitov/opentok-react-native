@@ -1,13 +1,19 @@
-import React, { Component, Children, cloneElement } from 'react';
-import { View, ViewPropTypes } from 'react-native';
-import PropTypes from 'prop-types';
-import { pick, isNull } from 'underscore';
-import { setNativeEvents, removeNativeEvents,  OT } from './OT';
-import { sanitizeSessionEvents, sanitizeSessionOptions, sanitizeSignalData,
-   sanitizeCredentials, getConnectionStatus } from './helpers/OTSessionHelper';
-import { handleError } from './OTError';
-import { logOT, getOtrnErrorEventHandler } from './helpers/OTHelper';
-import OTContext from './contexts/OTContext';
+import { ViewPropTypes } from "deprecated-react-native-prop-types";
+import PropTypes from "prop-types";
+import React, { Component } from "react";
+import { View } from "react-native";
+import { isNull, pick } from "underscore";
+import { OT, removeNativeEvents, setNativeEvents } from "./OT";
+import { handleError } from "./OTError";
+import OTContext from "./contexts/OTContext";
+import { getOtrnErrorEventHandler, logOT } from "./helpers/OTHelper";
+import {
+  getConnectionStatus,
+  sanitizeCredentials,
+  sanitizeSessionEvents,
+  sanitizeSessionOptions,
+  sanitizeSignalData,
+} from "./helpers/OTSessionHelper";
 
 export default class OTSession extends Component {
   constructor(props) {
@@ -19,25 +25,34 @@ export default class OTSession extends Component {
     this.initComponent();
   }
   initComponent = () => {
-    const credentials = pick(this.props, ['apiKey', 'sessionId', 'token']);
+    const credentials = pick(this.props, ["apiKey", "sessionId", "token"]);
     this.sanitizedCredentials = sanitizeCredentials(credentials);
     if (Object.keys(this.sanitizedCredentials).length === 3) {
-      const sessionEvents = sanitizeSessionEvents(this.sanitizedCredentials.sessionId, this.props.eventHandlers);
+      const sessionEvents = sanitizeSessionEvents(
+        this.sanitizedCredentials.sessionId,
+        this.props.eventHandlers
+      );
       setNativeEvents(sessionEvents);
     }
-  }
+  };
   componentDidMount() {
     const sessionOptions = sanitizeSessionOptions(this.props.options);
     const { apiKey, sessionId, token } = this.sanitizedCredentials;
     if (apiKey && sessionId && token) {
       this.createSession(this.sanitizedCredentials, sessionOptions);
-      logOT({ apiKey: this.sanitizedCredentials.apiKey, sessionId: this.sanitizedCredentials.sessionId, action: 'rn_initialize', proxyUrl: sessionOptions.proxyUrl });
+      logOT({
+        apiKey: this.sanitizedCredentials.apiKey,
+        sessionId: this.sanitizedCredentials.sessionId,
+        action: "rn_initialize",
+        proxyUrl: sessionOptions.proxyUrl,
+      });
     } else {
-      handleError('Please check your OpenTok credentials.');
+      handleError("Please check your OpenTok credentials.");
     }
   }
   componentDidUpdate(previousProps) {
-    const useDefault = (value, defaultValue) => (value === undefined ? defaultValue : value);
+    const useDefault = (value, defaultValue) =>
+      value === undefined ? defaultValue : value;
     const shouldUpdate = (key, defaultValue) => {
       const previous = useDefault(previousProps[key], defaultValue);
       const current = useDefault(this.props[key], defaultValue);
@@ -51,9 +66,9 @@ export default class OTSession extends Component {
       }
     };
 
-    updateSessionProperty('signal', {});
+    updateSessionProperty("signal", {});
 
-    if (this.props['createSession'] !== previousProps['createSession']) {
+    if (this.props["createSession"] !== previousProps["createSession"]) {
       const sessionOptions = sanitizeSessionOptions(this.props.options);
       this.createSession(this.sanitizedCredentials, sessionOptions);
     }
@@ -71,11 +86,20 @@ export default class OTSession extends Component {
       } else {
         OT.getSessionInfo(sessionId, (session) => {
           if (!isNull(session)) {
-            const sessionInfo = { ...session, connectionStatus: getConnectionStatus(session.connectionStatus)};
+            const sessionInfo = {
+              ...session,
+              connectionStatus: getConnectionStatus(session.connectionStatus),
+            };
             this.setState({
               sessionInfo,
             });
-            logOT({ apiKey: this.sanitizedCredentials.apiKey, sessionId: this.sanitizedCredentials.sessionId, action: 'rn_on_connect', proxyUrl: sessionOptions.proxyUrl, connectionId: session.connection.connectionId });
+            logOT({
+              apiKey: this.sanitizedCredentials.apiKey,
+              sessionId: this.sanitizedCredentials.sessionId,
+              action: "rn_on_connect",
+              proxyUrl: sessionOptions.proxyUrl,
+              connectionId: session.connection.connectionId,
+            });
             if (Object.keys(signal).length > 0) {
               this.signal(signal);
             }
@@ -89,7 +113,10 @@ export default class OTSession extends Component {
       if (disconnectError) {
         this.otrnEventHandler(disconnectError);
       } else {
-        const events = sanitizeSessionEvents(this.props.sessionId, this.props.eventHandlers);
+        const events = sanitizeSessionEvents(
+          this.props.sessionId,
+          this.props.eventHandlers
+        );
         removeNativeEvents(events);
       }
     });
@@ -99,7 +126,11 @@ export default class OTSession extends Component {
   }
   signal(signal) {
     const signalData = sanitizeSignalData(signal);
-    OT.sendSignal(this.props.sessionId, signalData.signal, signalData.errorHandler);
+    OT.sendSignal(
+      this.props.sessionId,
+      signalData.signal,
+      signalData.errorHandler
+    );
   }
   render() {
     const { style, children, sessionId, apiKey, token } = this.props;
@@ -107,9 +138,7 @@ export default class OTSession extends Component {
     if (children && sessionId && apiKey && token) {
       return (
         <OTContext.Provider value={{ sessionId, sessionInfo }}>
-          <View style={style}>
-            { children }
-          </View>
+          <View style={style}>{children}</View>
         </OTContext.Provider>
       );
     }
@@ -137,6 +166,6 @@ OTSession.defaultProps = {
   options: {},
   signal: {},
   style: {
-    flex: 1
+    flex: 1,
   },
 };
