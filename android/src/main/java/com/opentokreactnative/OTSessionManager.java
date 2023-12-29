@@ -4,46 +4,51 @@ package com.opentokreactnative;
  * Created by manik on 1/29/18.
  */
 
+import android.os.Build;
 import android.util.Log;
-import android.widget.FrameLayout;
 import android.view.View;
+import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
-
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableArray;
 
+import com.opentok.android.AudioDeviceManager;
 import com.opentok.android.BaseVideoCapturer;
 import com.opentok.android.Session;
 import com.opentok.android.Connection;
+import com.opentok.android.OpentokError;
 import com.opentok.android.Publisher;
 import com.opentok.android.PublisherKit;
+import com.opentok.android.Session;
+import com.opentok.android.Session.Builder.IceServer;
+import com.opentok.android.Session.Builder.IncludeServers;
+import com.opentok.android.Session.Builder.TransportPolicy;
 import com.opentok.android.Stream;
-import com.opentok.android.OpentokError;
 import com.opentok.android.Subscriber;
 import com.opentok.android.SubscriberKit;
 import com.opentokreactnative.utils.CameraIndex;
 import com.opentokreactnative.utils.CustomVideoCapturer;
 import com.opentok.android.VideoUtils;
-import com.opentok.android.Session.Builder.TransportPolicy;
-import com.opentok.android.Session.Builder.IncludeServers;
-import com.opentok.android.Session.Builder.IceServer;
-import com.opentok.android.AudioDeviceManager;
+import com.opentokreactnative.utils.CustomVideoCapturer;
 import com.opentokreactnative.utils.EventUtils;
 import com.opentokreactnative.utils.Utils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.ArrayList;
 
 public class OTSessionManager extends ReactContextBaseJavaModule
         implements Session.SessionListener,
@@ -59,7 +64,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         SubscriberKit.AudioStatsListener,
         SubscriberKit.VideoStatsListener,
         SubscriberKit.VideoListener,
-        SubscriberKit.StreamListener{
+        SubscriberKit.StreamListener,
+        LifecycleEventListener
+        {
 
     private ConcurrentHashMap<String, Integer> connectionStatusMap = new ConcurrentHashMap<>();
     private ArrayList<String> jsEvents = new ArrayList<String>();
@@ -75,13 +82,13 @@ public class OTSessionManager extends ReactContextBaseJavaModule
 
         super(reactContext);
         sharedState = OTRN.getSharedState();
+        reactContext.addLifecycleEventListener(this);
     }
 
     @ReactMethod
     public void initSession(String apiKey, String sessionId, ReadableMap sessionOptions) {
 
         final boolean useTextureViews = sessionOptions.getBoolean("useTextureViews");
-        final boolean isCamera2Capable = sessionOptions.getBoolean("isCamera2Capable");
         final boolean connectionEventsSuppressed = sessionOptions.getBoolean("connectionEventsSuppressed");
         final boolean ipWhitelist = sessionOptions.getBoolean("ipWhitelist");
         final boolean enableStereoOutput = sessionOptions.getBoolean("enableStereoOutput");
@@ -105,11 +112,6 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     @Override
                     public boolean useTextureViews() {
                         return useTextureViews;
-                    }
-
-                    @Override
-                    public boolean isCamera2Capable() {
-                        return isCamera2Capable;
                     }
                 })
                 .connectionEventsSuppressed(connectionEventsSuppressed)
@@ -152,6 +154,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         String cameraPosition = properties.getString("cameraPosition");
         Boolean audioFallbackEnabled = properties.getBoolean("audioFallbackEnabled");
         int audioBitrate = properties.getInt("audioBitrate");
+        Boolean enableDtx = properties.getBoolean("enableDtx");
         String frameRate = "FPS_" + properties.getInt("frameRate");
         String resolution = properties.getString("resolution");
         Boolean publishAudio = properties.getBoolean("publishAudio");
@@ -169,6 +172,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .videoTrack(videoTrack)
                     .name(name)
                     .audioBitrate(audioBitrate)
+                    .enableOpusDtx(enableDtx)
                     .resolution(Publisher.CameraCaptureResolution.valueOf(resolution))
                     .frameRate(Publisher.CameraCaptureFrameRate.valueOf(frameRate))
                     .capturer(capturer)
@@ -176,7 +180,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
             mPublisher.setPublisherVideoType(PublisherKit.PublisherKitVideoType.PublisherKitVideoTypeScreen);
         } else {
 
-            CustomVideoCapturer capturer = new CustomVideoCapturer(this.getReactApplicationContext(), Publisher.CameraCaptureResolution.HIGH, Publisher.CameraCaptureFrameRate.FPS_30);
+            CustomVideoCapturer capturer = new CustomVideoCapturer(this.getReactApplicationContext());
             capturer.setCameraEventsListener(position -> sendCameraPositionChanged(position));
             capturer.enableBackgroundBlur(blurBackground);
             capturer.enablePixelatedFace(pixelatedFace);
@@ -190,6 +194,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                     .frameRate(Publisher.CameraCaptureFrameRate.valueOf(frameRate))
                     .capturer(capturer)
                     .build();
+            if (mPublisher.getCapturer() != null) {
+                mPublisher.getCapturer().setVideoContentHint(Utils.convertVideoContentHint(properties.getString("videoContentHint")));
+            }
         }
         mPublisher.setPublisherListener(this);
         mPublisher.setAudioLevelListener(this);
@@ -410,6 +417,16 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     }
 
     @ReactMethod
+    public void changeVideoContentHint(String publisherId, String videoContentHint) {
+
+        ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
+        Publisher mPublisher = mPublishers.get(publisherId);
+        if (mPublisher != null && mPublisher.getCapturer() != null) {
+            mPublisher.getCapturer().setVideoContentHint(Utils.convertVideoContentHint(videoContentHint));
+        }
+    }
+
+    @ReactMethod
     public void backgroundBlur(String publisherId, boolean enable) {
         ConcurrentHashMap<String, Publisher> publishers = sharedState.getPublishers();
         Publisher publisher = publishers.get(publisherId);
@@ -429,7 +446,6 @@ public class OTSessionManager extends ReactContextBaseJavaModule
 
     @ReactMethod
     public void setNativeEvents(ReadableArray events) {
-
         for (int i = 0; i < events.size(); i++) {
             jsEvents.add(events.getString(i));
         }
@@ -458,6 +474,18 @@ public class OTSessionManager extends ReactContextBaseJavaModule
             componentEvents.remove(events.getString(i));
         }
     }
+
+    // Required for rn built in EventEmitter Calls.
+    @ReactMethod
+    public void addListener(String eventName) {
+
+    }
+
+    @ReactMethod
+    public void removeListeners(Integer count) {
+
+    }
+
 
     @ReactMethod
     public void sendSignal(String sessionId, ReadableMap signal, Callback callback) {
@@ -618,12 +646,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     @Override
     public void onStreamReceived(Session session, Stream stream) {
         String streamId = stream.getStreamId();
-        printLogs("onStreamReceived: New Stream Received " + streamId + " in session: " + session.getSessionId());
         ConcurrentHashMap<String, Boolean> destroyedStreams = sharedState.getPublisherDestroyedStreams();
         boolean streamWasDestroyed = destroyedStreams.containsKey(streamId);
         if (streamWasDestroyed) {
-            printLogs("Stream already destroyed: " + streamId);
-            destroyedStreams.remove(streamId);
             return;
         }
         ConcurrentHashMap<String, Stream> mSubscriberStreams = sharedState.getSubscriberStreams();
@@ -990,6 +1015,18 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         sendEventMap(this.getReactApplicationContext(), session.getSessionId() + ":" + sessionPreface + "onStreamPropertyChanged", eventData);
         printLogs("onStreamHasAudioChanged");
     }
+
+    @Override
+    public void onStreamHasCaptionsChanged(Session session, Stream stream, boolean hasCaptions) {
+        WritableMap eventData = Arguments.createMap();
+        if (stream != null) {
+          eventData.putMap("stream", EventUtils.prepareJSStreamMap(stream, session));
+        }
+        eventData.putBoolean("hasCaptions", hasCaptions);
+        sendEventMap(this.getReactApplicationContext(), session.getSessionId() + ":" + sessionPreface + "onStreamHasCaptionsChanged", eventData);
+        printLogs("onStreamHasCaptionsChanged");
+    }
+
     @Override
     public void onStreamHasVideoChanged(Session session, Stream stream, boolean Video) {
 
@@ -1025,5 +1062,32 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         sendEventMap(this.getReactApplicationContext(), session.getSessionId() + ":" + sessionPreface + "onStreamPropertyChanged", eventData);
         printLogs("onStreamVideoTypeChanged");
     }
+    @Override
+    public void onHostResume() {
+        ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
+
+        for (String key: mPublishers.keySet()) {
+            Publisher publisher = mPublishers.get(key);
+
+            if (publisher != null) {
+                publisher.onResume();
+            }
+        }
+    }
+
+    @Override
+    public void onHostPause() {
+        ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
+
+       for (String key: mPublishers.keySet()) {
+            Publisher publisher = mPublishers.get(key);
+
+            if (publisher != null) {
+                publisher.onPause();
+            }
+        }
+    }
+    @Override
+    public void onHostDestroy() {}
 
 }

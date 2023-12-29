@@ -1,9 +1,8 @@
 package com.opentokreactnative;
 
-import android.view.Gravity;
+import android.opengl.GLSurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.opengl.GLSurfaceView;
 
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.opentok.android.BaseVideoRenderer;

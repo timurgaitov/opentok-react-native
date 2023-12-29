@@ -62,6 +62,9 @@ RCT_EXTERN_METHOD(setPreferredFrameRate:
 RCT_EXTERN_METHOD(changeCameraPosition:
                   (NSString*)publisherId
                   cameraPosition:(NSString*)cameraPosition)
+RCT_EXTERN_METHOD(changeVideoContentHint:
+                  (NSString*)publisherId
+                  videoContentHint:(NSString*)videoContentHint)
 RCT_EXTERN_METHOD(setNativeEvents:
                   (NSArray*)events)
 RCT_EXTERN_METHOD(removeNativeEvents:
@@ -82,4 +85,10 @@ RCT_EXTERN_METHOD(getSessionInfo:
                   callback:(RCTResponseSenderBlock*)callback)
 RCT_EXTERN_METHOD(enableLogs:
                   (BOOL)logLevel)
+RCT_EXTERN_METHOD(backgroundBlur:
+                  (NSString*)publisherId
+                  enable:(BOOL)enable)
+RCT_EXTERN_METHOD(pixelatedFace:
+                  (NSString*)publisherId
+                  enable:(BOOL)enable)
 @end
