@@ -13,7 +13,6 @@ import com.opentokreactnative.mlkit.utils.BitmapEffects;
 
 import java.util.List;
 
-
 public class FaceOverlay {
     private volatile List<Face> faces;
     private final Bitmap originalBitmap;
@@ -87,7 +86,7 @@ public class FaceOverlay {
             bottom = original.getHeight();
         }
 
-        return BitmapEffects.pixelate(original, 8, left, top, right, bottom);
+        return BitmapEffects.pixelate(original, 15, left, top, right, bottom);
     }
 
 }

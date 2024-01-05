@@ -61,6 +61,38 @@ declare module "opentok-react-native" {
     stream: Stream;
   }
 
+  interface ArchiveEvent {
+    archiveId: string;
+    name: string;
+    sessionId: string;
+  }
+
+  interface ErrorEvent {
+    code: string;
+    message: string;
+  }
+
+  interface SubscriberAudioStatsEvent {
+    audioBytesReceived: number,
+    audioPacketsLost: number,
+    audioPacketsReceived: number,
+    timeStamp: number,
+  }
+
+  interface VideoNetworkStatsEvent {
+    videoPacketsLost: number,
+    videoBytesReceived: number,
+    videoPacketsReceived: number,
+    timestamp: number,
+  }
+
+  interface SignalEvent {
+    sessionId: string;
+    fromConnection: string;
+    type: string;
+    data: string;
+  }
+
   interface OTSessionProps extends ViewProps {
     /**
      * TokBox API Key
@@ -88,6 +120,11 @@ declare module "opentok-react-native" {
     signal?: any;
 
     /**
+     * Used to get details about the session
+     */
+    getSessionInfo?: any
+
+    /**
      * Event handlers passed into the native session instance.
      */
     eventHandlers?: OTSessionEventHandlers;
@@ -102,6 +139,11 @@ declare module "opentok-react-native" {
     connectionEventsSuppressed?: boolean;
 
     /**
+     * EU proxy server URL provided by vonage. Please check https://tokbox.com/developer/guides/eu-proxy/
+     */
+     proxyUrl?: string;
+
+     /**
      * Android only - valid options are 'mediaOverlay' or 'onTop'
      */
     androidZOrder?: "mediaOverlay" | "onTop";
@@ -117,12 +159,14 @@ declare module "opentok-react-native" {
     useTextureViews?: boolean;
 
     /**
-     * Android only - default is false
+     * Android only - default is false.
+     * Deprecated and ignored.
+
      */
     isCamera2Capable?: boolean;
 
     /**
-     * Android only - default is false
+     * Whether to use the allowed IP list feature - default is false
      */
     ipWhitelist?: boolean;
 
@@ -148,12 +192,12 @@ declare module "opentok-react-native" {
     /**
      * Sent when an archive recording of a session starts. If you connect to a session in which recording is already in progress, this message is sent when you connect.
      */
-    archiveStarted?: CallbackWithParam<any, any>;
+    archiveStarted?: CallbackWithParam<ArchiveEvent, any>;
 
     /**
      * Sent when an archive recording of a session stops.
      */
-    archiveStopped?: CallbackWithParam<string, any>;
+    archiveStopped?: CallbackWithParam<ArchiveEvent, any>;
 
     /**
      * Sent when another client connects to the session. The connection object represents the client’s connection.
@@ -168,7 +212,7 @@ declare module "opentok-react-native" {
     /**
      * Sent if the attempt to connect to the session fails or if the connection to the session drops due to an error after a successful connection.
      */
-    error?: CallbackWithParam<any, any>;
+    error?: CallbackWithParam<ErrorEvent, any>;
 
     /**
      * Sent if there is an error with the communication between the native session instance and the JS component.
@@ -196,9 +240,9 @@ declare module "opentok-react-native" {
     sessionReconnecting?: Callback<any>;
 
     /**
-     * Sent when the local client has lost its connection to an OpenTok session and is trying to reconnect. This results from a loss in network connectivity. If the client can reconnect to the session, the sessionReconnected message is sent. Otherwise, if the client cannot reconnect, the sessionDisconnected message is sent.
+     * Sent when the client receives a signal.
      */
-    signal?: CallbackWithParam<any, any>;
+    signal?: CallbackWithParam<SignalEvent, any>;
 
     /**
      * Sent when a new stream is created in this session.
@@ -231,6 +275,11 @@ declare module "opentok-react-native" {
      * Event handlers passed into native publsiher instance
      */
     eventHandlers?: OTPublisherEventHandlers;
+
+    swap?: boolean;
+
+    fitToView?: string;
+
   }
 
   interface OTPublisherProperties {
@@ -259,6 +308,11 @@ declare module "opentok-react-native" {
      * The preferred camera position. When setting this property, if the change is possible, the publisher will use the camera with the specified position. Valid Inputs: 'front' or 'back'
      */
     cameraPosition?: "front" | "back";
+
+    /**
+     * Whether to enable Opus DTX. The default value is false. Setting this to true can reduce bandwidth usage in streams that have long periods of silence.
+     */
+    enableDtx?: boolean;
 
     /**
      * The desired frame rate, in frames per second, of the video. Valid values are 30, 15, 7, and 1. The published stream will use the closest value supported on the publishing client. The frame rate can differ slightly from the value you set, depending on the device of the client. And the video will only use the desired frame rate if the client configuration supports it.
@@ -295,16 +349,23 @@ declare module "opentok-react-native" {
      */
     videoSource?: VideoSource;
 
+    /**
+     * Whether to blur background.
+     */
     backgroundBlur?: boolean;
 
+    /**
+     * Whether to obscure faces on video.
+     */
     pixelatedFace?: boolean;
+
   }
 
   interface OTPublisherEventHandlers {
     /**
      * The audio level, from 0 to 1.0. Adjust this value logarithmically for use in adjusting a user interface element, such as a volume meter. Use a moving average to smooth the data.
      */
-    audioLevel?: CallbackWithParam<string>;
+    audioLevel?: CallbackWithParam<number>;
 
     /**
      * Sent if the publisher encounters an error. After this message is sent, the publisher can be considered fully detached from a session and may be released.
@@ -319,12 +380,12 @@ declare module "opentok-react-native" {
     /**
      * Sent when the publisher starts streaming.
      */
-    streamCreated?: CallbackWithParam<any, any>;
+    streamCreated?: CallbackWithParam<StreamCreatedEvent, any>;
 
     /**
      * Sent when the publisher stops streaming.
      */
-    streamDestroyed?: CallbackWithParam<any, any>;
+    streamDestroyed?: CallbackWithParam<StreamDestroyedEvent, any>;
 
     cameraPositionChanged?: CallbackWithParam<string>
   }
@@ -336,7 +397,7 @@ declare module "opentok-react-native" {
 
   interface OTSubscriberProps extends ViewProps {
     /**
-     * OpenTok Session Id. This is auto populated by wrapping OTSubscriber with OTSession
+     * OpenTok Session ID. This is auto populated by wrapping OTSubscriber with OTSession
      */
     sessionId?: string;
 
@@ -389,7 +450,7 @@ declare module "opentok-react-native" {
     /**
      * Sent periodically to report audio statistics for the subscriber.
      */
-    audioNetworkStats?: CallbackWithParam<any, any>;
+    audioNetworkStats?: CallbackWithParam<SubscriberAudioStatsEvent, any>;
 
     /**
      * Sent when the subscriber successfully connects to the stream.
@@ -439,7 +500,7 @@ declare module "opentok-react-native" {
     /**
      * Sent periodically to report video statistics for the subscriber.
      */
-    videoNetworkStats?: CallbackWithParam<any, any>;
+    videoNetworkStats?: CallbackWithParam<VideoNetworkStatsEvent, any>;
   }
 
   interface OTSubscriberViewProps extends ViewProps {
@@ -447,6 +508,10 @@ declare module "opentok-react-native" {
      * OpenTok Subscriber streamId.
      */
     streamId?: string;
+
+    swap?: boolean;
+
+    fitToView?: string;
   }
 
   /**

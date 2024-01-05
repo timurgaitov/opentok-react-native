@@ -30,7 +30,7 @@ const reassignEvents = (type, customEvents, events, eventKey) => {
   return newEvents;
 };
 
-const sanitizeBooleanProperty = property => (property || property === undefined ? true : property);
+const sanitizeBooleanProperty = (property, defaultVal = true) => (property == null || property === undefined ? defaultVal : property);
 
 const getOtrnErrorEventHandler = (events) => {
   let otrnEventHandler = event => {

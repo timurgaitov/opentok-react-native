@@ -23,9 +23,11 @@
 The `OTSubscriber` component will subscribe to a specified stream from a specified session upon mounting. The `OTSubscriber` component will stop subscribing and unsubscribing when it's unmounting.
 
 ## Events
-  * **audioLevel** (String) — Sent on a regular interval with the recent representative audio level.
+  * **audioLevel** (SubscriberAudioLevelEvent) — Sent on a regular interval with the recent representative audio level.
+  See [SubscriberAudioLevelEvent](./EventData.md#SubscriberAudioLevelEvent)
 
   * **audioNetworkStats** (Object) — Sent periodically to report audio statistics for the subscriber.
+  Am [SessionConnectEvent](./EventData.md#SessionConnectEvent) object is passed into the event handler.
 
   * **connected** () — Sent when the subscriber successfully connects to the stream.
 
@@ -77,6 +79,14 @@ class App extends Component {
     this.subscriberEventHandlers = {
       error: (error) => {
         console.log(`There was an error with the subscriber: ${error}`);
+      },
+      audioNetworkStats: event => {
+        console.log('audioNetworkStats', event);
+        // { timeStamp: 1643203644833, audioPacketsLost: 0, audioPacketsReceived: 64, audioBytesReceived: 5574 }
+      },
+      videoNetworkStats: event => {
+        console.log('videoNetworkStats', event);
+        // videoBytesReceived: 706635, videoPacketsLost: 0, timeStamp: 1643203644724, videoPacketsReceived: 656 }
       },
     };
   }
