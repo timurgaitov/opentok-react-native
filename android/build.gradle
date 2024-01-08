@@ -12,8 +12,8 @@ android {
     buildToolsVersion _buildToolsVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     defaultConfig {
@@ -27,10 +27,11 @@ android {
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "com.facebook.react:react-native:${_reactNativeVersion}"  // From node_modules
-    implementation 'com.opentok.android:opentok-android-sdk:2.22.3'
 
     implementation 'com.google.mlkit:segmentation-selfie:16.0.0-beta4'
     implementation 'com.google.mlkit:face-detection:16.1.5'
 
     implementation 'com.github.android:renderscript-intrinsics-replacement-toolkit:598692ab79'
+
+    implementation 'com.opentok.android:opentok-android-sdk:2.25.1'
 }
