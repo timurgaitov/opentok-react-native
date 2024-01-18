@@ -71,7 +71,7 @@ declare module "opentok-react-native" {
     code: string;
     message: string;
   }
-  
+
   interface SubscriberAudioStatsEvent {
     audioBytesReceived: number,
     audioPacketsLost: number,
@@ -159,7 +159,7 @@ declare module "opentok-react-native" {
     /**
      * Android only - default is false.
      * Deprecated and ignored.
-     
+
      */
     isCamera2Capable?: boolean;
 
@@ -167,7 +167,7 @@ declare module "opentok-react-native" {
      * Whether to use the allowed IP list feature - default is false
      */
     ipWhitelist?: boolean;
-    
+
     /**
      * Enable Stereo output
      */
@@ -277,7 +277,7 @@ declare module "opentok-react-native" {
     swap?: boolean;
 
     fitToView?: string;
-    
+
   }
 
   interface OTPublisherProperties {
@@ -384,6 +384,8 @@ declare module "opentok-react-native" {
      * Sent when the publisher stops streaming.
      */
     streamDestroyed?: CallbackWithParam<StreamDestroyedEvent, any>;
+
+    cameraPositionChanged?: CallbackWithParam<string>
   }
 
   /**
@@ -422,7 +424,7 @@ declare module "opentok-react-native" {
      */
     subscribeToSelf?: boolean;
 
-    children?: CallbackWithParam<string[], void>; 
+    children?: CallbackWithParam<string[], void>;
   }
 
   interface OTSubscriberProperties {
