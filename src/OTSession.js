@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { pick, isNull } from 'underscore';
 import { setNativeEvents, removeNativeEvents,  OT } from './OT';
 import { sanitizeSessionEvents, sanitizeSessionOptions, sanitizeSignalData,
-   sanitizeCredentials, getConnectionStatus } from './helpers/OTSessionHelper';
+  sanitizeCredentials, sanitizeEncryptionSecret, getConnectionStatus } from './helpers/OTSessionHelper';
 import { handleError } from './OTError';
 import { logOT, getOtrnErrorEventHandler } from './helpers/OTHelper';
 import OTContext from './contexts/OTContext';
