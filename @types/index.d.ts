@@ -38,6 +38,7 @@ declare module "opentok-react-native" {
     name: string;
     streamId: string;
     hasAudio: boolean;
+    hasCaptions: boolean;
     hasVideo: boolean;
     sessionId: string;
     connectionId: string;
@@ -57,7 +58,7 @@ declare module "opentok-react-native" {
   interface StreamPropertyChangedEvent {
     newValue: any;
     oldValue: any;
-    changedProperty: "hasAudio" | "hasVideo" | "videoDimensions";
+    changedProperty: "hasAudio" | "hasCaptions" | "hasVideo" | "videoDimensions";
     stream: Stream;
   }
 
@@ -70,6 +71,11 @@ declare module "opentok-react-native" {
   interface ErrorEvent {
     code: string;
     message: string;
+  }
+
+  interface SubscriberCaptionEvent {
+    text: string,
+    isFinal: boolean,
   }
 
   interface SubscriberAudioStatsEvent {
@@ -86,11 +92,38 @@ declare module "opentok-react-native" {
     timestamp: number,
   }
 
+  interface PublisherAudioNetworkStats {
+    connectionId?: string,
+    subscriberId?: string,
+    audioPacketsLost: number,
+    audioBytesSent: number,
+    audioPacketsSent: number,
+    timeStamp: number,
+  }
+
+  interface PublisherVideoNetworkStats {
+    connectionId?: string,
+    subscriberId?: string,
+    videoPacketsLost: number,
+    videoBytesSent: number,
+    videoPacketsSent: number,
+    timestamp: number,
+  }
+
+  interface PublisherRtcStatsReport {
+    connectionId: string,
+    jsonArrayOfReports: string,
+  }
+
   interface SignalEvent {
     sessionId: string;
-    fromConnection: string;
+    connectionId: string;
     type: string;
     data: string;
+  }
+
+  interface MuteForcedEvent {
+    active: boolean;
   }
 
   interface OTSessionProps extends ViewProps {
@@ -128,6 +161,13 @@ declare module "opentok-react-native" {
      * Event handlers passed into the native session instance.
      */
     eventHandlers?: OTSessionEventHandlers;
+
+
+    /**
+     * Used to set the encryption secret in a session that uses end-to-end encryption.
+     * See https://tokbox.com/developer/guides/end-to-end-encryption.
+     */
+    encryptionSecret?: string
   }
 
   interface OTSessionSessionOptions {
@@ -139,9 +179,9 @@ declare module "opentok-react-native" {
     /**
      * EU proxy server URL provided by vonage. Please check https://tokbox.com/developer/guides/eu-proxy/
      */
-     proxyUrl?: string;
+    proxyUrl?: string;
 
-     /**
+    /**
      * Android only - valid options are 'mediaOverlay' or 'onTop'
      */
     androidZOrder?: "mediaOverlay" | "onTop";
@@ -179,9 +219,9 @@ declare module "opentok-react-native" {
       includeServers: 'all' | 'custom';
       transportPolicy: 'all' | 'relay';
       customServers: {
-      urls: string[];
-      username?: string;
-      credential?: string;
+        urls: string[];
+        username?: string;
+        credential?: string;
       }[];
     };
   }
@@ -208,9 +248,14 @@ declare module "opentok-react-native" {
     connectionDestroyed?: CallbackWithParam<ConnectionDestroyedEvent, any>;
 
     /**
-     * Sent if the attempt to connect to the session fails or if the connection to the session drops due to an error after a successful connection.
+     * Sent if the attempt to connect to the session fails or if the connection to the session drops due to an error after a successful connection. Also sent if setting an encryption secret results in an error.
      */
     error?: CallbackWithParam<ErrorEvent, any>;
+
+    /**
+     * Sent when a moderator has forced clients publishing streams to the session to mute audio (the active property of the MuteForcedEvent object is set to true), or a moderator has disabled the mute audio state in the session (the active property of the MuteForcedEvent object is set to false).
+     */
+    muteForced?: CallbackWithParam<MuteForcedEvent, any>;
 
     /**
      * Sent if there is an error with the communication between the native session instance and the JS component.
@@ -259,9 +304,38 @@ declare module "opentok-react-native" {
   }
 
   /**
-   * https://github.com/opentok/opentok-react-native/blob/master/docs/OTSession.md
+   * https://tokbox.com/developer/sdks/react-native/reference/OTSession.html
    */
-  export class OTSession extends React.Component<OTSessionProps> {}
+  export class OTSession extends React.Component<OTSessionProps, unknown> {
+    /**
+     * Used to get capabilities of the client
+     */
+    getCapabilities: () => Promise<{
+      canForceMute: boolean;
+      canPublish: boolean;
+      canSubscribe: boolean;
+    }>
+
+    /**
+     * Mutes all streams in the session.
+     */
+    forceMuteAll: (excludedStreamIds: string[]) => Promise<void>
+
+    /**
+     * Mutes a stream in the session.
+     */
+    forceMuteStream: (streamId: string) => Promise<void>
+
+    /**
+     * Disables the force mute state for the session.
+     */
+    disableForceMute: () => Promise<void>
+
+    /**
+     * Used to report an issue
+     */
+    reportIssue: () => Promise<string>
+  }
 
   interface OTPublisherProps extends ViewProps {
     /**
@@ -293,7 +367,16 @@ declare module "opentok-react-native" {
     audioBitrate?: number;
 
     /**
-     * Whether to turn on audio fallback or not.
+     * Settings to enable and disable publisher and subscriber audio fallback.
+     * See https://tokbox.com/developer/guides/audio-fallback.
+     */
+    audioFallback?: {
+      publisher?: boolean;
+      subscriber?: boolean;
+    };
+
+    /**
+     * Deprecated. See the `audioFallback` property.
      */
     audioFallbackEnabled?: boolean;
 
@@ -328,14 +411,19 @@ declare module "opentok-react-native" {
     publishAudio?: boolean;
 
     /**
+     * Whether to publish captions.
+     */
+    publishCaptions?: boolean;
+
+    /**
      * Whether to publish video.
      */
     publishVideo?: boolean;
 
     /**
-     * The desired resolution of the video. The format of the string is "widthxheight", where the width and height are represented in pixels. Valid values are "1280x720", "640x480", and "352x288". The published video will only use the desired resolution if the client configuration supports it. Some devices and clients do not support each of these resolution settings.
+     * The desired resolution of the video. The format of the string is "widthxheight", where the width and height are represented in pixels. Valid values are "1920x1080", "1280x720", "640x480", and "352x288". The published video will only use the desired resolution if the client configuration supports it. Some devices and clients do not support each of these resolution settings.
      */
-    resolution?: "1280x720" | "640x480" | "352x288";
+    resolution?: "1920x1080" | "1280x720" | "640x480" | "352x288";
 
     /**
      * If this property is set to false, the video subsystem will not be initialized for the publisher, and setting the publishVideo property will have no effect. If your application does not require the use of video, it is recommended to set this property rather than use the publishVideo property, which only temporarily disables the video track.
@@ -366,14 +454,29 @@ declare module "opentok-react-native" {
     audioLevel?: CallbackWithParam<number>;
 
     /**
+     * Sent when publisher audio stats are available.
+     */
+    audioNetworkStats?: CallbackWithParam<PublisherAudioNetworkStats[], any>;
+    /**
      * Sent if the publisher encounters an error. After this message is sent, the publisher can be considered fully detached from a session and may be released.
      */
     error?: CallbackWithParam<any, any>;
 
     /**
+     * Sent when a moderator has forced this publisher's stream to be muted.
+     */
+    muteForced?: Callback<any>;
+
+    /**
      * Sent if there is an error with the communication between the native publisher instance and the JS component.
      */
     otrnError?: CallbackWithParam<any, any>;
+
+    /**
+     * Sent when RTC stats reports are available for the publisher,
+     * in response to calling the OTPublisher.getRtcStatsReport() method.
+     */
+    rtcStatsReport?: CallbackWithParam<PublisherRtcStatsReport[], any>;
 
     /**
      * Sent when the publisher starts streaming.
@@ -386,12 +489,52 @@ declare module "opentok-react-native" {
     streamDestroyed?: CallbackWithParam<StreamDestroyedEvent, any>;
 
     cameraPositionChanged?: CallbackWithParam<string>
+
+    /**
+     * Sent when the publisher stops sending video because of publisher audio fallback (see https://tokbox.com/developer/guides/audio-fallback).
+     */
+    videoDisabled?: CallbackWithParam<{reason: string}>;
+
+    /**
+     * Sent when the publisher is close to going to audio-only fallback becuase of declining network conditions (see https://tokbox.com/developer/guides/audio-fallback).
+     */
+    videoDisableWarning?: Callback<any>;
+
+    /**
+     * Sent after a videoDisableWarning event when network conditions improve (see https://tokbox.com/developer/guides/audio-fallback).
+     */
+    videoDisableWarningLifted?: Callback<any>;
+
+    /**
+     * Sent when the publisher resumes sending video after it was disabled because of publisher audio fallback (see https://tokbox.com/developer/guides/audio-fallback).
+     */
+    videoEnabled?: CallbackWithParam<{reason: string}, any>;
+
+    /**
+     * Sent when publisher video stats are available.
+     */
+    videoNetworkStats?: CallbackWithParam<PublisherVideoNetworkStats[], any>;
   }
 
   /**
-   * https://github.com/opentok/opentok-react-native/blob/master/docs/OTPublisher.md
+   * https://tokbox.com/developer/sdks/react-native/reference/OTPublisher.html
    */
-  export class OTPublisher extends React.Component<OTPublisherProps> {}
+  export class OTPublisher extends React.Component<OTPublisherProps, unknown> {
+    /**
+     * Gets the RTC stats report for the publisher. This is an asynchronous operation.
+     * The OTPublisher object dispatches an rtcStatsReport event when RTC statistics for
+     * the publisher are available.
+     */
+    getRtcStatsReport: () => void;
+
+    /**
+     * Sets video transformers for the publisher (or clears them if passed an empty array).
+     */
+    setVideoTransformers: (transformers: Array<{
+      name: string,
+      properties?: string,
+    }>) => void;
+  }
 
   interface OTSubscriberProps extends ViewProps {
     /**
@@ -429,9 +572,29 @@ declare module "opentok-react-native" {
 
   interface OTSubscriberProperties {
     /**
+     * The audio volume, from 0 to 100.
+     */
+    audioVolume?: number;
+
+    /**
+     * The preferred frame rate, in frames per second.
+     */
+    preferredFrameRate?: number;
+
+    /**
+     * The preferred resolution, either "1280x720", "640x480", or "352x288".
+     */
+    preferredResolution?: string;
+
+    /**
      * Whether to subscribe to audio.
      */
     subscribeToAudio?: boolean;
+
+    /**
+     * Whether to subscribe to captions.
+     */
+    subscribeToCaptions?: boolean;
 
     /**
      * Whether to subscribe video.
@@ -456,6 +619,11 @@ declare module "opentok-react-native" {
     connected?: Callback<any>;
 
     /**
+     * Sent when the subscriber receives a caption for the stream.
+     */
+    captionReceived?: CallbackWithParam<SubscriberCaptionEvent, any>;
+
+    /**
      * Called when the subscriber’s stream has been interrupted.
      */
     disconnected?: Callback<any>;
@@ -471,6 +639,12 @@ declare module "opentok-react-native" {
     otrnError?: CallbackWithParam<any, any>;
 
     /**
+     * Sent when an RTC stats report is available for the subscriber,
+     * in response to calling the OTSubscriber.getRtcStatsReport() method.
+     */
+    rtcStatsReport?: CallbackWithParam<RtcStatsReport, any>;
+
+    /**
      * Sent when a frame of video has been decoded. Although the subscriber will connect in a relatively short time, video can take more time to synchronize. This message is sent after the connected message is sent.
      */
     videoDataReceived?: Callback<any>;
@@ -483,12 +657,12 @@ declare module "opentok-react-native" {
     /**
      * This message is sent when the OpenTok Media Router determines that the stream quality has degraded and the video will be disabled if the quality degrades further. If the quality degrades further, the subscriber disables the video and the videoDisabled message is sent. If the stream quality improves, the videoDisableWarningLifted message is sent.
      */
-    videoDisableWarning?: Callback<any>;
+    videoDisableWarning?: CallbackWithParam<{stream: Stream}, any>;
 
     /**
      * This message is sent when the subscriber’s video stream starts (when there previously was no video) or resumes (after video was disabled). Check the reason parameter for the reason why the video started (or resumed).
      */
-    videoDisableWarningLifted?: Callback<any>;
+    videoDisableWarningLifted?: CallbackWithParam<{stream: Stream}, any>;
 
     /**
      * This message is sent when the subscriber’s video stream starts (when there previously was no video) or resumes (after video was disabled). Check the reason parameter for the reason why the video started (or resumed).
@@ -513,11 +687,18 @@ declare module "opentok-react-native" {
   }
 
   /**
-   * https://github.com/opentok/opentok-react-native/blob/main/docs/OTSubscriber.md#custom-rendering-of-streams
+   * https://tokbox.com/developer/guides/subscribe-stream/react-native/#custom_rendering
    */
-  export class OTSubscriberView extends React.Component<OTSubscriberViewProps> {}
+  export class OTSubscriberView extends React.Component<OTSubscriberViewProps, unknown> {}
   /**
-   * https://github.com/opentok/opentok-react-native/blob/master/docs/OTSubscriber.md
+   * https://tokbox.com/developer/sdks/react-native/reference/OTSubscriber.html
    */
-  export class OTSubscriber extends React.Component<OTSubscriberProps> {}
+  export class OTSubscriber extends React.Component<OTSubscriberProps, unknown> {
+    /**
+     * Gets the RTC stats report for the subscriber. This is an asynchronous operation.
+     * The OTSubscriber object dispatches an rtcStatsReport event when RTC statistics for
+     * the publisher are available.
+     */
+    getRtcStatsReport: () => void;
+  }
 }

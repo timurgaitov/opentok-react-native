@@ -23,4 +23,4 @@ project.xcworkspace
 
 
 /android/.idea
-/android/.gradle
+android/.gradle

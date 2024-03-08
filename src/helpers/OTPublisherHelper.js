@@ -8,6 +8,8 @@ const sanitizeResolution = (resolution) => {
       return 'MEDIUM';
     case '1280x720':
       return 'HIGH';
+    case '1920x1080':
+      return 'HIGH_1080P';
     default:
       return 'MEDIUM';
   }
@@ -33,6 +35,31 @@ const sanitizeVideoSource = (videoSource = 'camera') => (videoSource === 'camera
 const sanitizeAudioBitrate = (audioBitrate = 40000) =>
   (audioBitrate < 6000 || audioBitrate > 510000 ? 40000 : audioBitrate);
 
+const sanitizeSubscriberAudioFallback = (audioFallback, audioFallbackEnabled, videoSource) => {
+  if (typeof audioFallback === 'undefined') {
+    if (typeof audioFallbackEnabled !== 'undefined') {
+      return !!audioFallbackEnabled;
+    }
+  }
+  if (typeof audioFallback !== 'object') {
+    return !(videoSource === 'screen');
+  }
+  if (typeof audioFallback.subscriber !== 'undefined') {
+    return !!audioFallback.subscriber;
+  }
+  return !(videoSource === 'screen');
+};
+
+const sanitizePublisherAudioFallback = (audioFallback, videoSource) => {
+  if (typeof audioFallback !== 'object') {
+    return !(videoSource === 'screen');
+  }
+  if (typeof audioFallback.publisher !== 'undefined') {
+    return !!audioFallback.publisher;
+  }
+  return !(videoSource === 'screen');
+};
+
 const sanitizeVideoContentHint = (sanitizeVideoContentHint = '') => {
   switch (sanitizeVideoContentHint) {
     case 'motion':
@@ -53,35 +80,56 @@ const sanitizeProperties = (properties) => {
       audioTrack: true,
       publishAudio: true,
       publishVideo: true,
+      publishCaptions: false,
       backgroundBlur: false,
       pixelatedFace: false,
       name: '',
       cameraPosition: 'front',
-      audioFallbackEnabled: true,
+      publisherAudioFallback: false,
+      subscriberAudioFallback: true,
       audioBitrate: 40000,
       enableDtx: false,
       frameRate: 30,
       resolution: sanitizeResolution(),
       videoContentHint: '',
       videoSource: 'camera',
-    };
+      scalableScreenshare: false,
+  };
   }
+
+  if (typeof properties.audioFallbackEnabled !== 'undefined') {
+    console.log('audioFallbackEnabled is deprecated -- use audioFallback.');
+    if (properties.audioFallback) {
+      delete properties.audioFallbackEnabled;
+    }
+  }
+
   return {
     videoTrack: sanitizeBooleanProperty(properties.videoTrack),
     audioTrack: sanitizeBooleanProperty(properties.audioTrack),
     publishAudio: sanitizeBooleanProperty(properties.publishAudio),
     publishVideo: sanitizeBooleanProperty(properties.publishVideo),
+    publishCaptions: sanitizeBooleanProperty(properties.publishCaptions),
     backgroundBlur: sanitizeBooleanProperty(properties.backgroundBlur, false),
     pixelatedFace: sanitizeBooleanProperty(properties.pixelatedFace, false),
     name: properties.name ? properties.name : '',
     cameraPosition: sanitizeCameraPosition(properties.cameraPosition),
-    audioFallbackEnabled: sanitizeBooleanProperty(properties.audioFallbackEnabled),
+    publisherAudioFallback: sanitizePublisherAudioFallback(
+      properties.audioFallback,
+      properties.videoSource,
+    ),
+    subscriberAudioFallback: sanitizeSubscriberAudioFallback(
+      properties.audioFallback,
+      properties.audioFallbackEnabled,
+      properties.videoSource,
+    ),
     audioBitrate: sanitizeAudioBitrate(properties.audioBitrate),
     enableDtx: sanitizeBooleanProperty(properties.enableDtx ? properties.enableDtx : false),
     frameRate: sanitizeFrameRate(properties.frameRate),
     resolution: sanitizeResolution(properties.resolution),
     videoContentHint: sanitizeVideoContentHint(properties.videoContentHint),
     videoSource: sanitizeVideoSource(properties.videoSource),
+    scalableScreenshare: Boolean(properties.scalableScreenshare),
   };
 };
 
@@ -96,6 +144,14 @@ const sanitizePublisherEvents = (publisherId, events) => {
       error: 'didFailWithError',
       audioLevel: 'audioLevelUpdated',
       cameraPositionChanged: 'cameraPositionChanged',
+      audioNetworkStats: 'audioNetworkStatsUpdated',
+      rtcStatsReport: 'rtcStatsReport',
+      videoNetworkStats: 'videoNetworkStatsUpdated',
+      muteForced: 'muteForced',
+      videoDisabled: 'videoDisabled',
+      videoEnabled: 'videoEnabled',
+      videoDisableWarning: 'videoDisableWarning',
+      videoDisableWarningLifted: 'videoDisableWarningLifted',
     },
     android: {
       streamCreated: 'onStreamCreated',
@@ -103,6 +159,14 @@ const sanitizePublisherEvents = (publisherId, events) => {
       error: 'onError',
       audioLevel: 'onAudioLevelUpdated',
       cameraPositionChanged: 'cameraPositionChanged',
+      audioNetworkStats: 'onAudioStats',
+      rtcStatsReport: 'onRtcStatsReport',
+      videoNetworkStats: 'onVideoStats',
+      muteForced: 'onMuteForced',
+      videoDisabled: 'onVideoDisabled',
+      videoEnabled: 'onVideoEnabled',
+      videoDisableWarning: 'onVideoDisableWarning',
+      videoDisableWarningLifted: 'onVideoDisableWarningLifted',
     },
   };
   return reassignEvents('publisher', customEvents, events, publisherId);

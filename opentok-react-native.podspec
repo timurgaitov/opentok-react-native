@@ -19,5 +19,5 @@ Pod::Spec.new do |s|
   s.dependency 'React'
   s.dependency 'GoogleMLKit/FaceDetection', '~> 2.6.0'
   s.dependency 'GoogleMLKit/SegmentationSelfie', '~> 2.6.0'
-  s.dependency 'OTXCFramework','2.25.1'
+  s.dependency 'OTXCFramework','2.27.0'
 end

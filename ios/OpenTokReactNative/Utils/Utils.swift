@@ -12,6 +12,8 @@ class Utils {
     static func sanitizeCameraResolution(_ resolution: Any) -> OTCameraCaptureResolution {
         guard let cameraResolution = resolution as? String else { return .medium };
         switch cameraResolution {
+        case "HIGH_1080P":
+            return .high1080p;
         case "HIGH":
             return .high;
         case "LOW":
@@ -63,6 +65,15 @@ class Utils {
             return "QualityChanged"
         case OTSubscriberVideoEventReason.codecNotSupported:
             return "CodecNotSupported"
+        }
+    }
+    
+    static func convertOTPublisherVideoEventReasonToString(_ reason: OTPublisherVideoEventReason) -> String {
+        switch reason {
+            case OTPublisherVideoEventReason.publisherPropertyChanged:
+                return "PublisherPropertyChanged"
+            case OTPublisherVideoEventReason.qualityChanged:
+                return "QualityChanged"
         }
     }
     
