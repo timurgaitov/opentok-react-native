@@ -117,6 +117,7 @@ class UvcVideoCapturer(
         synchronized(mSync) {
             try {
                 stopCapture()
+                camera = null
             } catch (e: Exception) {
                 // ignore
             }
