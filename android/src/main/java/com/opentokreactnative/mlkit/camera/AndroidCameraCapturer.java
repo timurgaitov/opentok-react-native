@@ -260,6 +260,7 @@ public class AndroidCameraCapturer {
     settings.height = height;
     settings.format = format;
     settings.expectedDelay = 0;
+    settings.mirrorInLocalRender = facing == CameraInfo.CAMERA_FACING_FRONT;
 
     return settings;
   }

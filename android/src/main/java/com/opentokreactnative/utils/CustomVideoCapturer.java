@@ -320,7 +320,7 @@ public class CustomVideoCapturer extends BaseVideoCapturer implements BaseVideoC
             ctrlBlock = null;
 
             permissionRequested = false;
-            uvcVideoCapturer.closeCamera();
+            uvcVideoCapturer.releaseCamera();
 
             if (cameraType != fallbackCameraType) {
                 onPositionChanged("back");
