@@ -78,6 +78,7 @@ class OTPublisher extends Component {
 
     updatePublisherProperty('publishAudio', true);
     updatePublisherProperty('publishVideo', true);
+    updatePublisherProperty('publishCaptions', false);
     updatePublisherProperty('backgroundBlur', false);
     updatePublisherProperty('pixelatedFace', false);
     updatePublisherProperty('cameraPosition', 'front');
@@ -154,6 +155,14 @@ class OTPublisher extends Component {
       }
     );
   }
+  getRtcStatsReport() {
+    OT.getRtcStatsReport(this.state.publisherId);
+  }
+
+  setVideoTransformers(videoTransformers) {
+    OT.setVideoTransformers(this.state.publisherId, videoTransformers);
+  }
+
   render() {
     const { publisher, publisherId } = this.state;
     const { sessionId } = this.context;
@@ -174,10 +183,13 @@ OTPublisher.propTypes = {
   ...viewPropTypes,
   properties: PropTypes.object, // eslint-disable-line react/forbid-prop-types
   eventHandlers: PropTypes.object, // eslint-disable-line react/forbid-prop-types
+  getRtcStatsReport: PropTypes.object, // eslint-disable-line react/forbid-prop-types
+  setVideoTransformers: PropTypes.func, // eslint-disable-line react/forbid-prop-types
 };
 OTPublisher.defaultProps = {
   properties: {},
   eventHandlers: {},
+  getRtcStatsReport: {},
 };
 OTPublisher.contextType = OTContext;
 export default OTPublisher;

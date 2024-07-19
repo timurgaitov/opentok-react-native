@@ -33,5 +33,5 @@ dependencies {
 
     implementation 'com.github.android:renderscript-intrinsics-replacement-toolkit:598692ab79'
 
-    implementation 'com.opentok.android:opentok-android-sdk:2.25.1'
+    implementation 'com.opentok.android:opentok-android-sdk:2.27.0'
 }
