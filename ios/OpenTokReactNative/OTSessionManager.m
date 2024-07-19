@@ -31,6 +31,8 @@ RCT_EXTERN_METHOD(publish:
                   callback:(RCTResponseSenderBlock*)callback)
 RCT_EXTERN_METHOD(subscribeToStream:
                   (NSString*)streamId
+                  sessionId:
+                  (NSString*)sessionId
                   properties:(NSDictionary*)properties
                   callback:(RCTResponseSenderBlock*)callback)
 RCT_EXTERN_METHOD(removeSubscriber:
@@ -45,15 +47,37 @@ RCT_EXTERN_METHOD(publishAudio:
 RCT_EXTERN_METHOD(publishVideo:
                   (NSString*)publisherId
                   pubVideo:(BOOL)pubVideo)
+RCT_EXTERN_METHOD(publishCaptions:
+                  (NSString*)publisherId
+                  pubAudio:(BOOL)publishCaptions)
+RCT_EXTERN_METHOD(getRtcStatsReport:
+                  (NSString*)publisherId)
+RCT_EXTERN_METHOD(getSubscriberRtcStatsReport:
+                  (NSString*)subscriberId)
 RCT_EXTERN_METHOD(subscribeToAudio:
                   (NSString*)streamId
                   subAudio:(BOOL)subAudio)
 RCT_EXTERN_METHOD(subscribeToVideo:
                   (NSString*)streamId
                   subVideo:(BOOL)subVideo)
+RCT_EXTERN_METHOD(subscribeToCaptions:
+                  (NSString*)streamId
+                  subAudio:(BOOL)subCaptions)
+RCT_EXTERN_METHOD(setPreferredResolution:
+                  (NSString*)streamId
+                  resolution:(NSDictionary*)resolution)
+RCT_EXTERN_METHOD(setPreferredFrameRate:
+                  (NSString*)streamId
+                  frameRate:(nonnull NSNumber*)frameRate)
+RCT_EXTERN_METHOD(setAudioVolume:
+                  (NSString*)streamId
+                  audioVolume:(nonnull NSNumber*)audioVolume)
 RCT_EXTERN_METHOD(changeCameraPosition:
                   (NSString*)publisherId
                   cameraPosition:(NSString*)cameraPosition)
+RCT_EXTERN_METHOD(changeVideoContentHint:
+                  (NSString*)publisherId
+                  videoContentHint:(NSString*)videoContentHint)
 RCT_EXTERN_METHOD(setNativeEvents:
                   (NSArray*)events)
 RCT_EXTERN_METHOD(removeNativeEvents:
@@ -62,16 +86,52 @@ RCT_EXTERN_METHOD(sendSignal:
                   (NSString*)sessionId
                   signal:(NSDictionary*)signal
                   callback:(RCTResponseSenderBlock*)callback)
+RCT_EXTERN_METHOD(setEncryptionSecret:
+                  (NSString*)sessionId
+                  secret:(NSString*)secret
+                  callback:(RCTResponseSenderBlock*)callback)
 RCT_EXTERN_METHOD(destroyPublisher:
                   (NSString*)publisherId
                   callback:(RCTResponseSenderBlock)callback)
 RCT_EXTERN_METHOD(setJSComponentEvents:
                   (NSArray*)events)
+RCT_EXTERN_METHOD(setVideoTransformers:
+                  (NSString*)publisherId
+                  videoTransformers:(NSArray*)videoTransformers)
 RCT_EXTERN_METHOD(removeJSComponentEvents:
                   (NSArray*)events)
 RCT_EXTERN_METHOD(getSessionInfo:
                   (NSString*)sessionId
                   callback:(RCTResponseSenderBlock*)callback)
+RCT_EXTERN_METHOD(getSessionCapabilities:
+                  (NSString*)sessionId
+                  callback:(RCTResponseSenderBlock*)callback)
+RCT_EXTERN_METHOD(reportIssue:
+                  (NSString*)sessionId
+                  callback:(RCTResponseSenderBlock*)callback)
+RCT_EXTERN_METHOD(getSupportedCodecs:
+                  (RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(forceMuteAll:
+                  (NSString*)sessionId
+                  excludedStreamIds:(NSArray*)excludedStreamIds
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(forceMuteStream:
+                  (NSString*)sessionId
+                  streamId:(NSString*)streamId
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(disableForceMute:
+                  (NSString*)sessionId
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(enableLogs:
                   (BOOL)logLevel)
+RCT_EXTERN_METHOD(backgroundBlur:
+                  (NSString*)publisherId
+                  enable:(BOOL)enable)
+RCT_EXTERN_METHOD(pixelatedFace:
+                  (NSString*)publisherId
+                  enable:(BOOL)enable)
 @end

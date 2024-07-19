@@ -1,9 +1,8 @@
 package com.opentokreactnative;
 
-import android.view.Gravity;
+import android.opengl.GLSurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.opengl.GLSurfaceView;
 
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.opentok.android.BaseVideoRenderer;
@@ -38,11 +37,14 @@ public class OTPublisherLayout extends FrameLayout{
         String zOrder = "";
         Publisher mPublisher = mPublishers.get(publisherId);
         if (mPublisher != null) {
-            if (androidOnTopMap.get(mPublisher.getSession().getSessionId()) != null) {
-                pubOrSub = androidOnTopMap.get(mPublisher.getSession().getSessionId());
-            }
-            if (androidZOrderMap.get(mPublisher.getSession().getSessionId()) != null) {
-                zOrder = androidZOrderMap.get(mPublisher.getSession().getSessionId());
+            String sessionId = mPublisher.getSession().getSessionId();
+            if (sessionId != null) {
+                if (androidOnTopMap.get(sessionId) != null) {
+                    pubOrSub = androidOnTopMap.get(sessionId);
+                }
+                if (androidZOrderMap.get(sessionId) != null) {
+                    zOrder = androidZOrderMap.get(sessionId);
+                }
             }
             mPublisher.setStyle(BaseVideoRenderer.STYLE_VIDEO_SCALE,
                     BaseVideoRenderer.STYLE_VIDEO_FILL);

@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 
 def _ext = rootProject.ext
 def _reactNativeVersion = _ext.has('reactNative') ? _ext.reactNative : '+'
@@ -11,6 +12,11 @@ android {
     compileSdkVersion _compileSdkVersion
     buildToolsVersion _buildToolsVersion
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
     defaultConfig {
         minSdkVersion _minSdkVersion
         targetSdkVersion _targetSdkVersion
@@ -22,6 +28,12 @@ android {
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "com.facebook.react:react-native:${_reactNativeVersion}"  // From node_modules
-    implementation 'com.opentok.android:opentok-android-sdk:2.16.6'
-    implementation 'com.github.jiangdongguo:AndroidUSBCamera:2.3.4'
+    implementation 'com.github.jiangdongguo.AndroidUSBCamera:libuvc:3.3.3'
+    implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:3.3.3'
+
+    implementation 'com.google.mlkit:segmentation-selfie:16.0.0-beta4'
+    implementation 'com.google.mlkit:face-detection:16.1.5'
+
+    implementation 'com.github.android:renderscript-intrinsics-replacement-toolkit:598692ab79'
+    implementation 'com.opentok.android:opentok-android-sdk:2.27.0'
 }

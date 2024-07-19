@@ -12,7 +12,8 @@ const checkAndroidPermissions = () => new Promise((resolve, reject) => {
       const permissionsError = {};
       permissionsError.permissionsDenied = [];
       each(result, (permissionValue, permissionType) => {
-        if (permissionValue === 'denied') {
+        // Check if the permission is denied or set to 'never_ask_again'.
+        if (permissionValue === 'denied' || permissionValue === 'never_ask_again' ) {
           permissionsError.permissionsDenied.push(permissionType);
           permissionsError.type = 'Permissions error';
         }
@@ -31,9 +32,17 @@ const checkAndroidPermissions = () => new Promise((resolve, reject) => {
 const setNativeEvents = (events) => {
   const eventNames = Object.keys(events);
   OT.setNativeEvents(eventNames);
-  each(events, (eventHandler, eventType) => {
+  
+  let hasRegisteredEvents;
+  if (nativeEvents.listeners) {
     const allEvents = nativeEvents.listeners();
-    if (!allEvents.includes(eventType)) {
+    hasRegisteredEvents = (eventType) => allEvents.includes(eventType);
+  } else {
+    hasRegisteredEvents = (eventType) => nativeEvents.listenerCount(eventType) > 0;
+  }
+
+  each(events, (eventHandler, eventType) => {
+    if (!hasRegisteredEvents(eventType)) {
       nativeEvents.addListener(eventType, eventHandler);
     }
   });
@@ -42,8 +51,8 @@ const setNativeEvents = (events) => {
 const removeNativeEvents = (events) => {
   const eventNames = Object.keys(events);
   OT.removeNativeEvents(eventNames);
-  each(events, (eventHandler, eventType) => {
-    nativeEvents.removeListener(eventType, eventHandler);
+  each(events, (_eventHandler, eventType) => {
+    nativeEvents.removeAllListeners(eventType);
   });
 };
 

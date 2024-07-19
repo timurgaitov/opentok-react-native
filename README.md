@@ -2,21 +2,11 @@
 
 <img src="https://assets.tokbox.com/img/vonage/Vonage_VideoAPI_black.svg" height="48px" alt="Tokbox is now known as Vonage" />
 
-React Native library for OpenTok iOS and Android SDKs
+React Native library for using [OpenTok](https://tokbox.com/developer/).
 
-- [Pre-Requisites](#pre-requisites)
-- [Installation](#installation)
-  - [iOS Installation](#ios-installation)
-  - [Android Installation](#android-installation)
-- API Reference
-  - [OTSession Component](https://github.com/opentok/opentok-react-native/tree/master/docs/OTSession.md)
-  - [OTPublisher Component](https://github.com/opentok/opentok-react-native/tree/master/docs/OTPublisher.md)
-  - [OTSubscriber Component](https://github.com/opentok/opentok-react-native/tree/master/docs/OTSubscriber.md)
-  - [Event Data](https://github.com/opentok/opentok-react-native/tree/master/docs/EventData.md)
-- [Samples](#samples)
-- [Contributing](#contributing)
+This library is now officially supported by Vonage.
 
-### In this repo, you'll find the OpenTok React Native library:
+In this repo, you'll find the OpenTok React Native library.
 
 ## Pre-Requisites:
 
@@ -54,7 +44,7 @@ If you've installed this package before, you may need to edit your `Podfile` and
     target '<YourProjectName>' do
 
       # Pods for <YourProject>
-        pod 'OpenTok', '2.16.3'
+        pod 'OTXCFramework', '2.27.0'
     end
 
 ```
@@ -100,19 +90,11 @@ If you try to archive the app and it fails, please do the following:
 
 3. Open your Android project in Android Studio.
 
-4. Add the following to your project `build.gradle` file:
+4. Sync Gradle
 
-```
-        maven {
-            url "http://tokbox.bintray.com/maven"
-        }
-```
+5. Make sure the following in your app's gradle `compileSdkVersion`, `buildToolsVersion`, `minSdkVersion`, and `targetSdkVersion` are greater than or equal to versions specified in the OpenTok React Native library.
 
-5. Sync Gradle
-
-6. Make sure the following in your app's gradle `compileSdkVersion`, `buildToolsVersion`, `minSdkVersion`, and `targetSdkVersion` are greater than or equal to versions specified in the OpenTok React Native library.
-
-7. As for the older Android devices, ensure you add camera and audio permissions to your `AndroidManifest.xml` file:
+6. As for the older Android devices, ensure you add camera and audio permissions to your `AndroidManifest.xml` file:
 
 ```xml
     <uses-permission android:name="android.permission.CAMERA" />
@@ -124,6 +106,49 @@ If you try to archive the app and it fails, please do the following:
 ```
 
 Newer versions of Android–`API Level 23` (Android 6.0)–have a different permissions model that is already handled by this library.
+
+#### Bintray sunset
+
+Bintray support has ended (official announcement: [https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/](https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/)). In your app build.gradle file you need to remove reference to `jcenter` and replace it with `mavenCentral`. Example:
+
+```
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ...
+    repositories {
+        google()
+        mavenCentral()
+    }
+    ...
+}
+
+allprojects {
+    repositories {
+        maven {
+            // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+            url("$rootDir/../node_modules/react-native/android")
+        }
+        maven {
+            // Android JSC is installed from npm
+            url("$rootDir/../node_modules/jsc-android/dist")
+        }
+        mavenCentral {
+            // We don't want to fetch react-native from Maven Central as there are
+            // older versions over there.
+            content {
+                excludeGroup "com.facebook.react"
+            }
+        }
+        google()
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+```
+
+## Docs
+
+See the [docs](https://tokbox.com/developer/sdks/react-native/reference).
 
 ## Samples
 

@@ -1,10 +1,11 @@
 import React, { Component, Children, cloneElement } from 'react';
-import { View, ViewPropTypes } from 'react-native';
+import { View } from 'react-native';
+import { ViewPropTypes } from 'deprecated-react-native-prop-types';
 import PropTypes from 'prop-types';
 import { pick, isNull } from 'underscore';
 import { setNativeEvents, removeNativeEvents,  OT } from './OT';
 import { sanitizeSessionEvents, sanitizeSessionOptions, sanitizeSignalData,
-   sanitizeCredentials, getConnectionStatus } from './helpers/OTSessionHelper';
+  sanitizeCredentials, sanitizeEncryptionSecret, getConnectionStatus } from './helpers/OTSessionHelper';
 import { handleError } from './OTError';
 import { logOT, getOtrnErrorEventHandler } from './helpers/OTHelper';
 import OTContext from './contexts/OTContext';
@@ -19,25 +20,30 @@ export default class OTSession extends Component {
     this.initComponent();
   }
   initComponent = () => {
-    const credentials = pick(this.props, ['apiKey', 'sessionId', 'token']);
+    const credentials = pick(this.props, ["apiKey", "sessionId", "token"]);
     this.sanitizedCredentials = sanitizeCredentials(credentials);
     if (Object.keys(this.sanitizedCredentials).length === 3) {
-      const sessionEvents = sanitizeSessionEvents(this.sanitizedCredentials.sessionId, this.props.eventHandlers);
+      const sessionEvents = sanitizeSessionEvents(
+        this.sanitizedCredentials.sessionId,
+        this.props.eventHandlers
+      );
       setNativeEvents(sessionEvents);
     }
-  }
+  };
   componentDidMount() {
     const sessionOptions = sanitizeSessionOptions(this.props.options);
+    const encryptionSecret = sanitizeEncryptionSecret(this.props.encryptionSecret);
     const { apiKey, sessionId, token } = this.sanitizedCredentials;
     if (apiKey && sessionId && token) {
       this.createSession(this.sanitizedCredentials, sessionOptions);
-      logOT({ apiKey: this.sanitizedCredentials.apiKey, sessionId: this.sanitizedCredentials.sessionId, action: 'rn_initialize', proxyUrl: sessionOptions.proxyUrl });
+      logOT({ apiKey, sessionId, action: 'rn_initialize', proxyUrl: sessionOptions.proxyUrl });
     } else {
-      handleError('Please check your OpenTok credentials.');
+      handleError("Please check your OpenTok credentials.");
     }
   }
   componentDidUpdate(previousProps) {
-    const useDefault = (value, defaultValue) => (value === undefined ? defaultValue : value);
+    const useDefault = (value, defaultValue) =>
+      value === undefined ? defaultValue : value;
     const shouldUpdate = (key, defaultValue) => {
       const previous = useDefault(previousProps[key], defaultValue);
       const current = useDefault(this.props[key], defaultValue);
@@ -47,7 +53,12 @@ export default class OTSession extends Component {
     const updateSessionProperty = (key, defaultValue) => {
       if (shouldUpdate(key, defaultValue)) {
         const value = useDefault(this.props[key], defaultValue);
-        this.signal(value);
+        if (key === 'signal') {
+          this.signal(value);
+        }
+        if (key === 'encryptionSecret') {
+          this.setEncryptionSecret(value);
+        }
       }
     };
 
@@ -56,21 +67,33 @@ export default class OTSession extends Component {
   componentWillUnmount() {
     this.disconnectSession();
   }
-  createSession(credentials, sessionOptions) {
+  createSession(credentials, sessionOptions, encryptionSecret) {
     const { signal } = this.props;
     const { apiKey, sessionId, token } = credentials;
     OT.initSession(apiKey, sessionId, sessionOptions);
+    if (encryptionSecret) {
+      this.setEncryptionSecret(encryptionSecret);
+    }
     OT.connect(sessionId, token, (error) => {
       if (error) {
         this.otrnEventHandler(error);
       } else {
         OT.getSessionInfo(sessionId, (session) => {
           if (!isNull(session)) {
-            const sessionInfo = { ...session, connectionStatus: getConnectionStatus(session.connectionStatus)};
+            const sessionInfo = {
+              ...session,
+              connectionStatus: getConnectionStatus(session.connectionStatus),
+            };
             this.setState({
               sessionInfo,
             });
-            logOT({ apiKey: this.sanitizedCredentials.apiKey, sessionId: this.sanitizedCredentials.sessionId, action: 'rn_on_connect', proxyUrl: sessionOptions.proxyUrl, connectionId: session.connection.connectionId });
+            logOT({
+              apiKey: this.sanitizedCredentials.apiKey,
+              sessionId: this.sanitizedCredentials.sessionId,
+              action: "rn_on_connect",
+              proxyUrl: sessionOptions.proxyUrl,
+              connectionId: session.connection.connectionId,
+            });
             if (Object.keys(signal).length > 0) {
               this.signal(signal);
             }
@@ -84,7 +107,10 @@ export default class OTSession extends Component {
       if (disconnectError) {
         this.otrnEventHandler(disconnectError);
       } else {
-        const events = sanitizeSessionEvents(this.props.sessionId, this.props.eventHandlers);
+        const events = sanitizeSessionEvents(
+          this.props.sessionId,
+          this.props.eventHandlers
+        );
         removeNativeEvents(events);
       }
     });
@@ -92,9 +118,52 @@ export default class OTSession extends Component {
   getSessionInfo() {
     return this.state.sessionInfo;
   }
+  getCapabilities() {
+    return new Promise((resolve, reject ) => {
+      OT.getSessionCapabilities(this.props.sessionId, (sessionCapabilities) => {
+        if (sessionCapabilities) {
+          resolve(sessionCapabilities);
+        } else {
+          reject(new Error('Not connected to session.'));
+        }
+      });
+    });
+  }
+  async reportIssue() {
+    return new Promise((resolve, reject) => {
+      OT.reportIssue(this.props.sessionId, (reportIssueId, error) => {
+        if (reportIssueId) {
+          resolve(reportIssueId)
+        } else {
+          reject (new Error(error))
+        }
+      });
+    })
+  }
   signal(signal) {
     const signalData = sanitizeSignalData(signal);
-    OT.sendSignal(this.props.sessionId, signalData.signal, signalData.errorHandler);
+    OT.sendSignal(
+      this.props.sessionId,
+      signalData.signal,
+      signalData.errorHandler
+    );
+  }
+  forceMuteAll(excludedStreamIds) {
+    return OT.forceMuteAll(this.props.sessionId, excludedStreamIds || []);
+  }
+  forceMuteStream(streamId) {
+    return OT.forceMuteStream(this.props.sessionId, streamId);
+  }
+  disableForceMute() {
+    return OT.disableForceMute(this.props.sessionId);
+  }
+  setEncryptionSecret(secret) {
+    const errorHandler = this.props.eventHandlers.error;
+    OT.setEncryptionSecret(this.props.sessionId, sanitizeEncryptionSecret(secret), (error) => {
+      if (error && errorHandler) {
+        errorHandler(error);
+      }
+    });
   }
   render() {
     const { style, children, sessionId, apiKey, token } = this.props;
@@ -102,9 +171,7 @@ export default class OTSession extends Component {
     if (children && sessionId && apiKey && token) {
       return (
         <OTContext.Provider value={{ sessionId, sessionInfo }}>
-          <View style={style}>
-            { children }
-          </View>
+          <View style={style}>{children}</View>
         </OTContext.Provider>
       );
     }
@@ -131,6 +198,6 @@ OTSession.defaultProps = {
   options: {},
   signal: {},
   style: {
-    flex: 1
+    flex: 1,
   },
 };
