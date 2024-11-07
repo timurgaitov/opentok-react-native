@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { View, Platform } from 'react-native';
 import { isNull } from 'underscore';
+import uuid from 'react-native-uuid';
 import {
   checkAndroidPermissions,
   OT,
@@ -17,7 +18,6 @@ import OTPublisherView from './views/OTPublisherView';
 import { getOtrnErrorEventHandler } from './helpers/OTHelper';
 import { isConnected } from './helpers/OTSessionHelper';
 import OTContext from './contexts/OTContext';
-const uuid = require('uuid/v4');
 
 class OTPublisher extends Component {
   constructor(props, context) {
@@ -25,12 +25,14 @@ class OTPublisher extends Component {
     this.state = {
       initError: null,
       publisher: null,
-      publisherId: uuid(),
+      publisherId: uuid.v4(),
     };
     this.initComponent();
   }
   initComponent = () => {
     this.componentEvents = {
+      publisherStreamCreated: 'publisherStreamCreated',
+      publisherStreamDestroyed: 'publisherStreamDestroyed:',
       sessionConnected:
         Platform.OS === 'android'
           ? 'session:onConnected'
@@ -44,6 +46,14 @@ class OTPublisher extends Component {
     );
     setNativeEvents(this.publisherEvents);
     OT.setJSComponentEvents(this.componentEventsArray);
+    this.publisherStreamCreated = nativeEvents.addListener(
+      'publisherStreamCreated',
+      stream => this.publisherStreamCreatedHandler(stream)
+    );
+    this.publisherStreamDestroyed = nativeEvents.addListener(
+      'publisherStreamDestroyed',
+      stream => this.publisherStreamDestroyedHandler(stream)
+    );
     if (this.context.sessionId) {
       this.sessionConnected = nativeEvents.addListener(
         `${this.context.sessionId}:${this.componentEvents.sessionConnected}`,
@@ -101,20 +111,22 @@ class OTPublisher extends Component {
     }
   };
   createPublisher() {
+    const publisherProperties = sanitizeProperties(this.props.properties);
     if (Platform.OS === 'android') {
-      checkAndroidPermissions()
+      const { audioTrack, videoTrack, videoSource } = publisherProperties;
+      const isScreenSharing = (videoSource === 'screen');
+      checkAndroidPermissions(audioTrack, videoTrack, isScreenSharing)
         .then(() => {
-          this.initPublisher();
+          this.initPublisher(publisherProperties);
         })
         .catch((error) => {
           this.otrnEventHandler(error);
         });
     } else {
-      this.initPublisher();
+      this.initPublisher(publisherProperties);
     }
   }
-  initPublisher() {
-    const publisherProperties = sanitizeProperties(this.props.properties);
+  initPublisher(publisherProperties) {
     OT.initPublisher(
       this.state.publisherId,
       publisherProperties,
@@ -159,6 +171,30 @@ class OTPublisher extends Component {
     OT.getRtcStatsReport(this.state.publisherId);
   }
 
+  publisherStreamCreatedHandler = (stream) => {
+    if (
+      this.props.eventHandlers
+      && this.props.eventHandlers.streamCreated
+      && stream.publisherId === this.state.publisherId
+    ) {
+      this.props.eventHandlers.streamCreated(stream);
+    }
+  }
+
+  publisherStreamDestroyedHandler = (stream) => {
+    if (
+      this.props.eventHandlers
+      && this.props.eventHandlers.streamDestroyed
+      && stream.publisherId === this.state.publisherId
+    ) {
+      this.props.eventHandlers.streamDestroyed(stream);
+    }
+  }
+
+  setAudioTransformers(audioTransformers) {
+    OT.setAudioTransformers(this.state.publisherId, audioTransformers);
+  }
+
   setVideoTransformers(videoTransformers) {
     OT.setVideoTransformers(this.state.publisherId, videoTransformers);
   }
@@ -184,6 +220,7 @@ OTPublisher.propTypes = {
   properties: PropTypes.object, // eslint-disable-line react/forbid-prop-types
   eventHandlers: PropTypes.object, // eslint-disable-line react/forbid-prop-types
   getRtcStatsReport: PropTypes.object, // eslint-disable-line react/forbid-prop-types
+  setAudioTransformers: PropTypes.func, // eslint-disable-line react/forbid-prop-types
   setVideoTransformers: PropTypes.func, // eslint-disable-line react/forbid-prop-types
 };
 OTPublisher.defaultProps = {

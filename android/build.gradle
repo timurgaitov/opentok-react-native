@@ -2,18 +2,18 @@ apply plugin: 'com.android.library'
 
 def _ext = rootProject.ext
 def _reactNativeVersion = _ext.has('reactNative') ? _ext.reactNative : '+'
-def _compileSdkVersion = _ext.has('compileSdkVersion') ? _ext.compileSdkVersion : 23
-def _buildToolsVersion = _ext.has('buildToolsVersion') ? _ext.buildToolsVersion : '23.0.1'
-def _minSdkVersion = _ext.has('minSdkVersion') ? _ext.minSdkVersion : 16
-def _targetSdkVersion = _ext.has('targetSdkVersion') ? _ext.targetSdkVersion : 23
+def _compileSdkVersion = _ext.has('compileSdkVersion') ? _ext.compileSdkVersion : 24
+def _buildToolsVersion = _ext.has('buildToolsVersion') ? _ext.buildToolsVersion : '24.0.3'
+def _minSdkVersion = _ext.has('minSdkVersion') ? _ext.minSdkVersion : 24
+def _targetSdkVersion = _ext.has('targetSdkVersion') ? _ext.targetSdkVersion : 24
 
 android {
     compileSdkVersion _compileSdkVersion
     buildToolsVersion _buildToolsVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     defaultConfig {
@@ -33,5 +33,5 @@ dependencies {
 
     implementation 'com.github.android:renderscript-intrinsics-replacement-toolkit:598692ab79'
 
-    implementation 'com.opentok.android:opentok-android-sdk:2.27.0'
+    implementation 'com.opentok.android:opentok-android-sdk:2.28.3'
 }

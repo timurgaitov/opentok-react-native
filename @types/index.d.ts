@@ -224,6 +224,11 @@ declare module "opentok-react-native" {
         credential?: string;
       }[];
     };
+
+    /**
+     * Enable single peer connection for the client.
+     */
+    enableSinglePeerConnection?: boolean;
   }
 
   interface OTSessionEventHandlers {
@@ -493,7 +498,7 @@ declare module "opentok-react-native" {
     /**
      * Sent when the publisher stops sending video because of publisher audio fallback (see https://tokbox.com/developer/guides/audio-fallback).
      */
-    videoDisabled?: CallbackWithParam<{reason: string}>;
+    videoDisabled?: CallbackWithParam<{reason: string}, any>;
 
     /**
      * Sent when the publisher is close to going to audio-only fallback becuase of declining network conditions (see https://tokbox.com/developer/guides/audio-fallback).
@@ -528,7 +533,21 @@ declare module "opentok-react-native" {
     getRtcStatsReport: () => void;
 
     /**
+     * Sets audio transformers for the publisher (or clears them if passed an empty array).
+     * To use this method, add `pod 'VonageClientSDKVideoTransformers'` to your
+     * Podfile and add `implementation "com.vonage:client-sdk-video-transformers:2.28.0"`
+     * to your your app/build.gradle file.
+     */
+    setAudioTransformers: (transformers: Array<{
+      name: string,
+      properties?: string,
+    }>) => void;
+
+    /**
      * Sets video transformers for the publisher (or clears them if passed an empty array).
+     * To use this method, add `pod 'VonageClientSDKVideoTransformers'` to your
+     * Podfile and add `implementation "com.vonage:client-sdk-video-transformers:2.28.0"`
+     * to your your app/build.gradle file.
      */
     setVideoTransformers: (transformers: Array<{
       name: string,
@@ -695,9 +714,9 @@ declare module "opentok-react-native" {
    */
   export class OTSubscriber extends React.Component<OTSubscriberProps, unknown> {
     /**
-     * Gets the RTC stats report for the subscriber. This is an asynchronous operation.
-     * The OTSubscriber object dispatches an rtcStatsReport event when RTC statistics for
-     * the publisher are available.
+     * Gets the RTC stats report for the subscribers. This is an asynchronous operation.
+     * The OTSubscriber object dispatches rtcStatsReport events when RTC statistics for
+     * the subscribers are available.
      */
     getRtcStatsReport: () => void;
   }

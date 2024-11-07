@@ -34,6 +34,7 @@ import com.opentok.android.MuteForcedInfo;
 import com.opentok.android.OpentokError;
 import com.opentok.android.Publisher;
 import com.opentok.android.PublisherKit;
+import com.opentok.android.PublisherKit.AudioTransformer;
 import com.opentok.android.PublisherKit.VideoTransformer;
 import com.opentok.android.Session;
 import com.opentok.android.Session.Builder.IceServer;
@@ -102,11 +103,6 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         final boolean useTextureViews = sessionOptions.getBoolean("useTextureViews");
         final boolean connectionEventsSuppressed = sessionOptions.getBoolean("connectionEventsSuppressed");
         final boolean ipWhitelist = sessionOptions.getBoolean("ipWhitelist");
-        final boolean enableStereoOutput = sessionOptions.getBoolean("enableStereoOutput");
-        if (enableStereoOutput) {
-            OTCustomAudioDriver otCustomAudioDriver = new OTCustomAudioDriver(this.getReactApplicationContext());
-            AudioDeviceManager.setAudioDevice(otCustomAudioDriver);
-        }
         final List<IceServer> iceServersList = Utils.sanitizeIceServer(sessionOptions.getArray("customServers"));
         final IncludeServers includeServers = Utils.sanitizeIncludeServer(sessionOptions.getString("includeServers"));
         final TransportPolicy transportPolicy = Utils.sanitizeTransportPolicy(sessionOptions.getString("transportPolicy"));
@@ -116,6 +112,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         ConcurrentHashMap<String, Session> mSessions = sharedState.getSessions();
         ConcurrentHashMap<String, String> mAndroidOnTopMap = sharedState.getAndroidOnTopMap();
         ConcurrentHashMap<String, String> mAndroidZOrderMap = sharedState.getAndroidZOrderMap();
+        final boolean singlePeerConnection = sessionOptions.getBoolean("enableSinglePeerConnection");
 
 
         Session mSession = new Session.Builder(this.getReactApplicationContext(), apiKey, sessionId)
@@ -130,6 +127,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
                 .setIceRouting(transportPolicy)
                 .setIpWhitelist(ipWhitelist)
                 .setProxyUrl(proxyUrl)
+                .setSinglePeerConnection(singlePeerConnection)
                 .build();
         mSession.setSessionListener(this);
         mSession.setSignalListener(this);
@@ -214,7 +212,7 @@ public class OTSessionManager extends ReactContextBaseJavaModule
             if (cameraPosition.equals("back")) {
                 mPublisher.cycleCamera();
             }
-            if (mPublisher.getCapturer() != null) {
+            if (videoTrack && mPublisher.getCapturer() != null) {
                 mPublisher.getCapturer().setVideoContentHint(Utils.convertVideoContentHint(properties.getString("videoContentHint")));
             }
         }
@@ -439,6 +437,16 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     }
 
     @ReactMethod
+    public void setAudioTransformers(String publisherId, ReadableArray audioTransformers) {
+        ConcurrentHashMap<String, Publisher> mPublishers = sharedState.getPublishers();
+        Publisher mPublisher = mPublishers.get(publisherId);
+        if (mPublisher != null) {
+          ArrayList<AudioTransformer> nativeAudioTransformers = Utils.sanitizeAudioTransformerList(mPublisher, audioTransformers);
+          mPublisher.setAudioTransformers(nativeAudioTransformers);
+        }
+    }
+
+    @ReactMethod
     public void subscribeToAudio(String streamId, Boolean subscribeToAudio) {
 
         ConcurrentHashMap<String, Subscriber> mSubscribers = sharedState.getSubscribers();
@@ -506,11 +514,11 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     }
 
     @ReactMethod
-    public void getSubscriberRtcStatsReport(String streamId) {
+    public void getSubscriberRtcStatsReport() {
 
         ConcurrentHashMap<String, Subscriber> mSubscribers = sharedState.getSubscribers();
-        Subscriber mSubscriber = mSubscribers.get(streamId);
-        if (mSubscriber != null) {
+        ArrayList<Subscriber> mSubscriberList = new ArrayList<>(mSubscribers.values());
+        for (Subscriber mSubscriber : mSubscriberList) {
             mSubscriber.getRtcStatsReport();
         }
     }
@@ -921,9 +929,9 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         ConcurrentHashMap<String, Stream> mSubscriberStreams = sharedState.getSubscriberStreams();
         mSubscriberStreams.put(stream.getStreamId(), stream);
         if (publisherId.length() > 0) {
-            String event = publisherId + ":" + publisherPreface + "onStreamCreated";;
             WritableMap streamInfo = EventUtils.prepareJSStreamMap(stream, publisherKit.getSession());
-            sendEventMap(this.getReactApplicationContext(), event, streamInfo);
+            streamInfo.putString("publisherId", publisherId);
+            sendEventMap(this.getReactApplicationContext(), "publisherStreamCreated", streamInfo);
         }
         printLogs("onStreamCreated: Publisher Stream Created. Own stream "+stream.getStreamId());
 
@@ -933,7 +941,6 @@ public class OTSessionManager extends ReactContextBaseJavaModule
     public void onStreamDestroyed(PublisherKit publisherKit, Stream stream) {
 
         String publisherId = Utils.getPublisherId(publisherKit);
-        String event = publisherId + ":" + publisherPreface + "onStreamDestroyed";
         ConcurrentHashMap<String, Stream> mSubscriberStreams = sharedState.getSubscriberStreams();
 
         String streamId = stream.getStreamId();
@@ -941,7 +948,8 @@ public class OTSessionManager extends ReactContextBaseJavaModule
         mSubscriberStreams.remove(streamId);
         if (publisherId.length() > 0) {
             WritableMap streamInfo = EventUtils.prepareJSStreamMap(stream, publisherKit.getSession());
-            sendEventMap(this.getReactApplicationContext(), event, streamInfo);
+            streamInfo.putString("publisherId", publisherId);
+            sendEventMap(this.getReactApplicationContext(), "publisherStreamDestroyed", streamInfo);
         }
         Callback mCallback = sharedState.getPublisherDestroyedCallbacks().get(publisherId);
         if (mCallback != null) {

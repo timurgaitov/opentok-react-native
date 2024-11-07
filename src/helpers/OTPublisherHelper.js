@@ -154,8 +154,8 @@ const sanitizePublisherEvents = (publisherId, events) => {
       videoDisableWarningLifted: 'videoDisableWarningLifted',
     },
     android: {
-      streamCreated: 'onStreamCreated',
-      streamDestroyed: 'onStreamDestroyed',
+      streamCreated: 'streamCreated',
+      streamDestroyed: 'streamDestroyed',
       error: 'onError',
       audioLevel: 'onAudioLevelUpdated',
       cameraPositionChanged: 'cameraPositionChanged',
